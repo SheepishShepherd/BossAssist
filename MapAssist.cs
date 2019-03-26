@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Terraria;
@@ -19,7 +18,7 @@ namespace BossAssist
         public static List<Vector2> scalesPos;
         public static List<int> scalesType;
 
-        internal static void FullMapInitialise()
+        internal static void FullMapInitialize()
         {
             bossBagPos = new List<Vector2>();
             bossBagType = new List<int>();

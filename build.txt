@@ -1,7 +1,5 @@
 author = SheepishShepherd
-version = 0.2.2
+version = 0.2.3
 displayName = Boss Highlights
 homepage = https://forums.terraria.org/index.php?threads/boss-assistance.72395/
-includePDB = true
-includeSource = false
-hideCode = true
+languageVersion = 6

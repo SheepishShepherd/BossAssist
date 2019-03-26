@@ -1,4 +1,2 @@
-Boss Assistance adds tiny informative features that tries not to change the game fundamentally. Please visit the homepage for information on content, mod support, and a link to the discord server. Suggestions are appreciated, but remember that this mod's goal is to not change how the game is played.
-
-[c/ec4e4e:Latest Patch:] [c/eb6d6d:v0.2.2] [c/ea9999:11/13/2018]
-[c/f6ff85:• Fixed a game-crashing bug with Tissue Samples] [c/f6ff85:and ShadowScales being drawn on the map]
+[c/e73030:v0.3.0]  [c/e98b8b:12/31/2018]
+Boss Assistance adds simple features including: Despawn messages for bosses, a respawn timer while dead, and map locations of treasure bags and fragments. More in-depth descriptions of content available on the homepage, along with future content and the link to my discord server. 

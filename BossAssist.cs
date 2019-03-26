@@ -4,15 +4,18 @@ using Microsoft.Xna.Framework;
 using Terraria;
 using Terraria.ModLoader;
 using Terraria.UI;
+using Microsoft.Xna.Framework.Graphics;
+using ReLogic.Graphics;
 
 namespace BossAssist
 {
-    class BossAssist : Mod
+    public class BossAssist : Mod
     {
         internal static BossAssist instance;
-
-        internal UserInterface TimerUI;
-        ModTranslation text;
+        
+        internal UserInterface BossLogInterface;
+        internal BossLogUI BossLog;
+        internal SetupBossList setup;
 
         public BossAssist()
         {
@@ -23,145 +26,28 @@ namespace BossAssist
         {
             instance = this;
 
-            MapAssist.FullMapInitialise();
+            MapAssist.FullMapInitialize();
+
+            setup = new SetupBossList();
 
             if (!Main.dedServ)
             {
-                TimerUI = new UserInterface();
-                TimerUI.SetState(null);
+                BossLog = new BossLogUI();
+                BossLog.Activate();
+                BossLogInterface = new UserInterface();
+                BossLogInterface.SetState(BossLog);
             }
-
-            // Event End Messages
-            
-            text = CreateTranslation("BMoonEnd");
-            text.SetDefault("The blood moon falls past the horizon...");
-            AddTranslation(text);
-
-            text = CreateTranslation("EclipseEnd");
-            text.SetDefault("The solar eclipse has ended... until next time...");
-            AddTranslation(text);
-            
-            text = CreateTranslation("PMoonEnd");
-            text.SetDefault("The pumpkin moon ends its harvest...");
-            AddTranslation(text);
-            
-            text = CreateTranslation("FMoonEnd");
-            text.SetDefault("The frost moon melts as the sun rises...");
-            AddTranslation(text);
-
-            // Lunar Pillar death messages
-
-            text = CreateTranslation("PillarDestroyed");
-            text.SetDefault("The {0} has been destroyed");
-            AddTranslation(text);
-
-
-            // Generic Mod Boss Despawn Messages
-
-            text = CreateTranslation("GenericBossWins");
-            text.SetDefault("{0} has killed every player!");
-            AddTranslation(text);
-
-            text = CreateTranslation("GenericBossLeft");
-            text.SetDefault("{0} is no longer after you...");
-            AddTranslation(text);
-
-            text = CreateTranslation("GenericBossSunCondition");
-            text.SetDefault("{0} flees as the sun rises...");
-            AddTranslation(text);
-
-            // Vanilla Boss Despawn Messages
-
-            // King Slime
-            text = CreateTranslation("KingSlimeWins");
-            text.SetDefault("King Slime leaves in triumph...");
-            AddTranslation(text);
-
-            // Eye of Cthulhu
-            text = CreateTranslation("EyeOfCthulhuWins");
-            text.SetDefault("Eye of Cthulhu has disappeared into the night...");
-            AddTranslation(text);
-
-            // Eater of Worlds
-            text = CreateTranslation("EaterOfWorldsWins");
-            text.SetDefault("Eater of Worlds burrows back underground...");
-            AddTranslation(text);
-
-            // Brain of Cthulhu
-            text = CreateTranslation("BrainOfCthulhuWins");
-            text.SetDefault("Brain of Cthulhu vanishes into the pits of the crimson...");
-            AddTranslation(text);
-
-            // Queen Bee
-            text = CreateTranslation("QueenBeeWins");
-            text.SetDefault("Queen Bee returns to her colony's nest...");
-            AddTranslation(text);
-
-            // Skeletron
-            text = CreateTranslation("SkeletronWins");
-            text.SetDefault("Skeletron continues to torture the Old Man...");
-            AddTranslation(text);
-
-            // Wall of Flesh
-            text = CreateTranslation("WallOfFleshWins");
-            text.SetDefault("Wall of Flesh has managed to cross the underworld...");
-            AddTranslation(text);
-
-            // Retinazer
-            text = CreateTranslation("RetinazerWins");
-            text.SetDefault("Retinazer continues its observations...");
-            AddTranslation(text);
-
-            // Spazmatism
-            text = CreateTranslation("SpazmatismWins");
-            text.SetDefault("Spazmatism continues its observations...");
-            AddTranslation(text);
-
-            // The Destroyer
-            text = CreateTranslation("DestroyerWins");
-            text.SetDefault("The Destroyer seeks for another world to devour...");
-            AddTranslation(text);
-
-            // Skeletron Prime
-            text = CreateTranslation("SkeletronPrimeWins");
-            text.SetDefault("Skeletron Prime begins searching for a new victim...");
-            AddTranslation(text);
-
-            // Plantera
-            text = CreateTranslation("PlanteraWins");
-            text.SetDefault("Plantera continues its rest within the jungle...");
-            AddTranslation(text);
-
-            // Golem
-            text = CreateTranslation("GolemWins");
-            text.SetDefault("Golem deactivates in the bowels of the temple...");
-            AddTranslation(text);
-
-            // Duke Fishron
-            text = CreateTranslation("DukeFishronWins");
-            text.SetDefault("Duke Fishron returns to the ocean depths...");
-            AddTranslation(text);
-
-            // Lunatic Cultist
-            text = CreateTranslation("LunaticCultistWins");
-            text.SetDefault("Lunatic Cultist goes back to its devoted worship...");
-            AddTranslation(text);
-
-            // Moon Lord
-            text = CreateTranslation("MoonLordWins");
-            text.SetDefault("Moon Lord has left this realm...");
-            AddTranslation(text);
-        }
-
-        public override void UpdateUI(GameTime gameTime)
-        {
-            if (Main.LocalPlayer.dead) TimerUI.SetState(new RespawnTimer());
-            else TimerUI.SetState(null);
         }
 
         public override void Unload()
         {
             instance = null;
+            setup = null;
+        }
+
+        public override void UpdateUI(GameTime gameTime)
+        {
+            if (BossLogInterface != null) BossLogInterface.Update(gameTime);
         }
 
         public override void PostDrawFullscreenMap(ref string mouseText)
@@ -171,15 +57,31 @@ namespace BossAssist
 
         public override void ModifyInterfaceLayers(List<GameInterfaceLayer> layers)
         {
+            int MouseTextIndex = layers.FindIndex(layer => layer.Name.Equals("Vanilla: Mouse Text"));
+            if (MouseTextIndex != -1)
+            {
+                layers.Insert(MouseTextIndex, new LegacyGameInterfaceLayer("Boss Log",
+                    delegate
+                    {
+                        if (BossLogUI.visible) BossLogInterface.Draw(Main.spriteBatch, new GameTime());
+                        return true;
+                    },
+                    InterfaceScaleType.UI)
+                );
+            }
             int InventoryIndex = layers.FindIndex(layer => layer.Name.Equals("Vanilla: Death Text"));
             if (InventoryIndex != -1)
             {
-                layers.Insert(InventoryIndex + 1, new LegacyGameInterfaceLayer(
-                    "Respawn Timer",
+                layers.Insert(InventoryIndex + 1, new LegacyGameInterfaceLayer("Respawn Timer",
                     delegate
                     {
-                        // If the current UIState of the UserInterface is null, nothing will draw. We don't need to track a separate .visible value.
-                        TimerUI.Draw(Main.spriteBatch, new GameTime());
+                        string timer;
+                        if (Main.LocalPlayer.dead && Main.LocalPlayer.difficulty != 2)
+                        {
+                            if (Main.LocalPlayer.respawnTimer % 60 == 0 && Main.LocalPlayer.respawnTimer / 60 <= 3) Main.PlaySound(25);
+                            timer = (Main.LocalPlayer.respawnTimer / 60 + 1).ToString();
+                            DynamicSpriteFontExtensionMethods.DrawString(Main.spriteBatch, Main.fontDeathText, timer, new Vector2(Main.screenWidth / 2, Main.screenHeight / 2 - 75), new Color(1f, 0.388f, 0.278f), 0f, default(Vector2), 1, SpriteEffects.None, 0f);
+                        }
                         return true;
                     },
                     InterfaceScaleType.UI)
@@ -196,13 +98,45 @@ namespace BossAssist
                 {
                     int bossID = Convert.ToInt32(args[1]);
                     string bossMessage = args[2] as string;
+                    
                     WorldAssist.ModBossTypes.Add(bossID);
                     WorldAssist.ModBossMessages.Add(bossMessage);
                     return "Success";
                 }
+                else if (AddType == "AddStatPage")
+                {
+                    float BossValue = Convert.ToSingle(args[1]);
+                    int BossID = Convert.ToInt32(args[2]);
+                    string ModName = args[3].ToString();
+                    string BossName = args[4].ToString();
+                    Func<bool> BossDowned = args[5] as Func<bool>;
+                    int BossSpawn = Convert.ToInt32(args[6]);
+                    List<int> BossCollect = args[7] as List<int>;
+                    List<int> BossLoot = args[8] as List<int>;
+                    Texture2D BossTexture = null;
+                    if (args.Length > 9) BossTexture = args[9] as Texture2D;
+
+                    setup.AddBoss(BossValue, BossID, ModName, BossName, BossDowned, BossSpawn, BossCollect, BossLoot, BossTexture);
+                }
+                else if (AddType == "AddLoot")
+                {
+                    string ModName = args[1].ToString();
+                    int BossID = Convert.ToInt32(args[2]);
+                    List<int> BossLoot = args[3] as List<int>;
+                    // This list is for adding on to existing bosses loot drops
+                    setup.AddToLootTable(BossID, ModName, BossLoot);
+                }
+                else if (AddType == "AddCollectibles")
+                {
+                    string ModName = args[1].ToString();
+                    int BossID = Convert.ToInt32(args[2]);
+                    List<int> BossCollect = args[3] as List<int>;
+                    // This list is for adding on to existing bosses loot drops
+                    setup.AddToCollection(BossID, ModName, BossCollect);
+                }
                 else
                 {
-                    ErrorLogger.Log("BossAssist Call Error: AddBoss not found");
+                    ErrorLogger.Log("BossAssist Call Error: Type not found");
                 }
             }
             catch (Exception e)

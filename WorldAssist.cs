@@ -4,156 +4,239 @@ using Terraria.ID;
 using Terraria.Localization;
 using System.Collections.Generic;
 using System.Linq;
+using Terraria.ModLoader.IO;
 
 namespace BossAssist
 {
     public class WorldAssist : ModWorld
     {
-        public static List<NPC> bossList = new List<NPC>();
-        public static List<int> bossListPos = new List<int>();
+        public static bool downedBetsy;
+
+        public static List<bool> ActiveBossesList = new List<bool>();
+        public static List<int> RecordTimers = new List<int>(0);
+        public static List<int> BrinkChecker = new List<int>(0);
+        public static List<int> MaxHealth = new List<int>(0);
+        public static List<bool> DeathTracker = new List<bool>(0);
 
         public static List<int> ModBossTypes = new List<int>();
         public static List<string> ModBossMessages = new List<string>();
-        bool ModBossDetected = false;
-
-        string key;
-
+        
         string EventKey = "";
         bool isBloodMoon = false;
         bool isPumpkinMoon = false;
         bool isFrostMoon = false;
         bool isEclipse = false;
-
+        
         public override void PreUpdate()
         {
+            List<BossInfo> BL = BossAssist.instance.setup.SortedBosses;
+            ResetArrays(BL.Count);
+
             for (int n = 0; n < Main.maxNPCs; n++)
             {
-                if (Main.npc[n].active && !bossList.Contains(Main.npc[n]) && !bossListPos.Contains(n) && (Main.npc[n].boss || Main.npc[n].type == 13))
+                NPC b = Main.npc[n];
+
+                // Bosses listed below are special cases
+                ActiveBossesList[BL.FindIndex(x => x.name == "Eater of Worlds" && x.source == "Vanilla")] = Main.npc.Any(npc => (npc.type == 13 || npc.type == 14 || npc.type == 15) && npc.active);
+                ActiveBossesList[BL.FindIndex(x => x.name == "The Twins" && x.source == "Vanilla")] = Main.npc.Any(npc => (npc.type == NPCID.Spazmatism || npc.type == NPCID.Retinazer) && npc.active);
+                ActiveBossesList[BL.FindIndex(x => x.name == "Moon Lord" && x.source == "Vanilla")] = Main.npc.Any(npc => (npc.type == NPCID.MoonLordCore || npc.type == NPCID.MoonLordHand || npc.type == NPCID.MoonLordHead) && npc.active);
+
+                if (NPCAssist.GetListNum(b) != -1)
                 {
-                    // Make sure these "bosses" are not counted
-                    if (Main.npc[n].type != NPCID.MoonLordHand && Main.npc[n].type != NPCID.MoonLordCore && Main.npc[n].type != NPCID.MartianSaucerCore)
+                    if (b.active)
                     {
-                        bossList.Add(Main.npc[n]);
-                        bossListPos.Add(n);
+                        ActiveBossesList[NPCAssist.GetListNum(b)] = true;
+                        if (Main.LocalPlayer.dead) DeathTracker[NPCAssist.GetListNum(b)] = true;
                     }
-                    // NetMessage.BroadcastChatMessage(NetworkText.FromLiteral(Main.npc[n].FullName + " Added!"), Colors.RarityRed);
+                    else if (!b.active && Main.npc.All(npc => (npc.type == b.type && !npc.active) || npc.type != b.type)) // <INACTIVE NPC>
+                    {
+                        if (b.FullName == BL[NPCAssist.GetListNum(b)].name && ActiveBossesList[NPCAssist.GetListNum(b)])
+                        {
+                            if ((b.type != NPCID.MoonLordHead && b.life >= 0) || (b.type == NPCID.MoonLordHead && b.life < 0))
+                            {
+                                if (Main.netMode == NetmodeID.SinglePlayer) Main.NewText(GetDespawnMessage(b), Colors.RarityPurple);
+                                else NetMessage.BroadcastChatMessage(NetworkText.FromLiteral(GetDespawnMessage(b)), Colors.RarityPurple);
+                            }
+                        }
+                        ActiveBossesList[NPCAssist.GetListNum(b)] = false;
+                    }
                 }
             }
 
-            for (int b = bossList.Count - 1; b >= 0; b--)
+         /// Record Timers
+            for (int active = 0; active < ActiveBossesList.Count; active++)
             {
-                if (!Main.npc[bossListPos[b]].active)  // If boss is no longer active, check for despawn conditions and remove NPC from the list
+                if (!Main.LocalPlayer.dead)
                 {
-                    if ((Main.npc[bossListPos[b]].type != NPCID.MoonLordHead && Main.npc[bossListPos[b]].life >= 0)
-                    || (Main.npc[bossListPos[b]].type == NPCID.MoonLordHead && Main.npc[bossListPos[b]].life < 0))
+                    if (ActiveBossesList[active])
                     {
-                        if (Main.player.Any(playerCheck => playerCheck.active && !playerCheck.dead)) // If any player is active and alive
+                        RecordTimers[active]++;
+                        MaxHealth[active] = Main.LocalPlayer.statLifeMax2;
+                        if (BrinkChecker[active] == 0 || (Main.LocalPlayer.statLife < BrinkChecker[active] && Main.LocalPlayer.statLife > 0))
                         {
-                            if (Main.dayTime && (bossList[b].type == 4 || bossList[b].type == 125 || bossList[b].type == 126 || bossList[b].type == 134))
-                            {
-                                // Bosses that despawn upon day time: EoC, Retinazar, Spazmatism, The Destroyer
-                                key = "Mods.BossAssist.GenericBossSunCondition";
-                            }
-                            else if (bossList[b].type == NPCID.WallofFlesh) key = "Mods.BossAssist.WallOfFleshWins";
-                            else key = "Mods.BossAssist.GenericBossLeft";
-                        }
-                        else
-                        {
-                            if (bossList[b].type == NPCID.KingSlime) key = "Mods.BossAssist.KingSlimeWins";
-                            else if (bossList[b].type == NPCID.EyeofCthulhu) key = "Mods.BossAssist.EyeOfCthulhuWins";
-                            else if (bossList[b].type == NPCID.EaterofWorldsHead) key = "Mods.BossAssist.EaterOfWorldsWins";
-                            else if (bossList[b].type == NPCID.BrainofCthulhu) key = "Mods.BossAssist.BrainOfCthulhuWins";
-                            else if (bossList[b].type == NPCID.QueenBee) key = "Mods.BossAssist.QueenBeeWins";
-                            else if (bossList[b].type == NPCID.SkeletronHead) key = "Mods.BossAssist.SkeletronWins";
-                            else if (bossList[b].type == NPCID.WallofFlesh) key = "Mods.BossAssist.WallOfFleshWins";
-                            else if (bossList[b].type == NPCID.Retinazer) key = "Mods.BossAssist.RetinazerWins";
-                            else if (bossList[b].type == NPCID.Spazmatism) key = "Mods.BossAssist.SpazmatismWins";
-                            else if (bossList[b].type == NPCID.TheDestroyer) key = "Mods.BossAssist.TheDestroyerWins";
-                            else if (bossList[b].type == NPCID.SkeletronPrime) key = "Mods.BossAssist.SkeletronPrimeWins";
-                            else if (bossList[b].type == NPCID.Plantera) key = "Mods.BossAssist.PlanteraWins";
-                            else if (bossList[b].type == NPCID.Golem) key = "Mods.BossAssist.GolemWins";
-                            else if (bossList[b].type == NPCID.DukeFishron) key = "Mods.BossAssist.DukeFishronWins";
-                            else if (bossList[b].type == NPCID.CultistBoss) key = "Mods.BossAssist.LunaticCultistWins";
-                            else if (bossList[b].type == NPCID.MoonLordHead) key = "Mods.BossAssist.MoonLordWins";
-                            else
-                            {
-                                for (int i = 0; i < ModBossTypes.Count; i++)
-                                {
-                                    if (bossList[b].type == ModBossTypes[i])
-                                    {
-                                        // Main.NewText("Modded Boss Detected!");
-                                        key = ModBossMessages[i];
-                                        ModBossDetected = true;
-                                        break;
-                                    }
-                                    else
-                                    {
-                                        // Main.NewText("Checked all instances inside ModBossTypes, but none were found");
-                                        key = "Mods.BossAssist.GenericBossWins";
-                                    }
-                                }
-                            }
-                        }
-                        if (Main.netMode == 0)
-                        {
-                            if (ModBossDetected)
-                            {
-                                ModBossDetected = false;
-                                Main.NewText(string.Format(bossList[b].GetFullNetName().ToString() + key), Colors.RarityPurple);
-                            }
-                            else Main.NewText(string.Format(Language.GetTextValue(key), bossList[b].GetFullNetName().ToString()), Colors.RarityPurple);
-                        }
-                        else
-                        {
-                            if (ModBossDetected)
-                            {
-                                ModBossDetected = false;
-                                NetMessage.BroadcastChatMessage(NetworkText.FromLiteral(bossList[b].GetFullNetName() + key), Colors.RarityPurple);
-                            }
-                            else NetMessage.BroadcastChatMessage(NetworkText.FromKey(key, bossList[b].FullName), Colors.RarityPurple);
+                            BrinkChecker[active] = Main.LocalPlayer.statLife;
                         }
                     }
-                    bossList.RemoveAt(b);
-                    bossListPos.RemoveAt(b);
-                    // NetMessage.BroadcastChatMessage(NetworkText.FromLiteral(bossList[b].FullName + " Removed!"), Colors.RarityRed);
+                    else
+                    {
+                        MaxHealth[active] = Main.LocalPlayer.statLifeMax2;
+                        RecordTimers[active] = 0;
+                        BrinkChecker[active] = 0;
+                    }
+                }
+                else
+                {
+                    MaxHealth[active] = Main.LocalPlayer.statLifeMax2;
+                    RecordTimers[active] = 0;
+                    BrinkChecker[active] = 0;
                 }
             }
         }
 
         public override void PostUpdate()
         {
+            // Boss Collections
+            for (int i = 0; i < Main.LocalPlayer.GetModPlayer<PlayerAssist>().BossTrophies.Count; i++)
+            {
+                for (int j = 0; j < Main.LocalPlayer.GetModPlayer<PlayerAssist>().BossTrophies[i].itemList.Count; j++)
+                {
+                    if (Main.LocalPlayer.HasItem(Main.LocalPlayer.GetModPlayer<PlayerAssist>().BossTrophies[i].itemList[j].type))
+                    {
+                        Main.LocalPlayer.GetModPlayer<PlayerAssist>().BossTrophies[i].checkList[j] = true;
+                    }
+                }
+            }
+
+            // Event Ending Messages
             if (Main.bloodMoon) isBloodMoon = true;
             if (Main.snowMoon) isFrostMoon = true;
             if (Main.pumpkinMoon) isPumpkinMoon = true;
             if (Main.eclipse) isEclipse = true;
 
-            if (Main.dayTime && isBloodMoon)
+            if (!Main.bloodMoon && isBloodMoon)
             {
                 isBloodMoon = false;
-                EventKey = "Mods.BossAssist.BMoonEnd";
+                EventKey = "The Blood Moon falls past the horizon...";
             }
-            else if (Main.dayTime && isFrostMoon)
+            else if (!Main.snowMoon && isFrostMoon)
             {
                 isFrostMoon = false;
-                EventKey = "Mods.BossAssist.FMoonEnd";
+                EventKey = "The Frost Moon melts as the sun rises...";
             }
-            else if (Main.dayTime && isPumpkinMoon)
+            else if (!Main.pumpkinMoon && isPumpkinMoon)
             {
                 isPumpkinMoon = false;
-                EventKey = "Mods.BossAssist.PMoonEnd";
+                EventKey = "The Pumpkin Moon ends its harvest...";
             }
-            else if (!Main.dayTime && isEclipse)
+            else if (!Main.eclipse && isEclipse)
             {
                 isEclipse = false;
-                EventKey = "Mods.BossAssist.EclipseEnd";
+                EventKey = "The solar eclipse has ended... until next time...";
             }
 
             if (EventKey != "")
             {
-                if (Main.netMode == 0) Main.NewText(Language.GetTextValue(EventKey), Colors.RarityGreen); // Single Player
-                else NetMessage.BroadcastChatMessage(NetworkText.FromKey(EventKey), Colors.RarityGreen); // Multiplayer
+                if (Main.netMode == NetmodeID.SinglePlayer) Main.NewText(EventKey, Colors.RarityGreen);
+                else NetMessage.BroadcastChatMessage(NetworkText.FromLiteral(EventKey), Colors.RarityGreen);
                 EventKey = "";
             }
+        }
+
+        public void ResetArrays(int shortcut)
+        {
+            if (ActiveBossesList.Count != shortcut)
+            {
+                while (ActiveBossesList.Count > shortcut) ActiveBossesList.RemoveAt(ActiveBossesList.Count - 1);
+                while (ActiveBossesList.Count < shortcut) ActiveBossesList.Add(false);
+            }
+            if (DeathTracker.Count != shortcut)
+            {
+                while (DeathTracker.Count > shortcut) DeathTracker.RemoveAt(DeathTracker.Count - 1);
+                while (DeathTracker.Count < shortcut) DeathTracker.Add(false);
+            }
+            if (RecordTimers.Count != shortcut)
+            {
+                while (RecordTimers.Count > shortcut) RecordTimers.RemoveAt(RecordTimers.Count - 1);
+                while (RecordTimers.Count < shortcut) RecordTimers.Add(0);
+            }
+            if (BrinkChecker.Count != shortcut)
+            {
+                while (BrinkChecker.Count > shortcut) BrinkChecker.RemoveAt(BrinkChecker.Count - 1);
+                while (BrinkChecker.Count < shortcut) BrinkChecker.Add(0);
+            }
+            if (MaxHealth.Count != shortcut)
+            {
+                while (MaxHealth.Count > shortcut) MaxHealth.RemoveAt(MaxHealth.Count - 1);
+                while (MaxHealth.Count < shortcut) MaxHealth.Add(0);
+            }
+        }
+
+        public string GetDespawnMessage(NPC boss)
+        {
+            if (Main.player.Any(playerCheck => playerCheck.active && !playerCheck.dead)) // If any player is active and alive
+            {
+                if (Main.dayTime && (boss.type == 4 || boss.type == 125 || boss.type == 126 || boss.type == 134))
+                {
+                    // Bosses that despawn upon day time: EoC, Retinazar, Spazmatism, The Destroyer
+                    return boss.FullName + " flees as the sun rises...";
+                }
+                else if (boss.type == NPCID.WallofFlesh) return "Wall of Flesh has managed to cross the underworld...";
+                else return boss.FullName + " is no longer after you...";
+            }
+            else
+            {
+                if (boss.type == NPCID.KingSlime) return "King Slime leaves in triumph...";
+                else if (boss.type == NPCID.EyeofCthulhu) return "Eye of Cthulhu has disappeared into the night...";
+                else if (boss.type == NPCID.EaterofWorldsHead) return "Eater of Worlds burrows back underground...";
+                else if (boss.type == NPCID.BrainofCthulhu) return "Brain of Cthulhu vanishes into the pits of the crimson...";
+                else if (boss.type == NPCID.QueenBee) return "Queen Bee returns to her colony's nest...";
+                else if (boss.type == NPCID.SkeletronHead) return "Skeletron continues to torture the Old Man...";
+                else if (boss.type == NPCID.WallofFlesh) return "Wall of Flesh has managed to cross the underworld...";
+                else if (boss.type == NPCID.Retinazer) return "Retinazer continues its observations...";
+                else if (boss.type == NPCID.Spazmatism) return "Spazmatism continues its observations...";
+                else if (boss.type == NPCID.TheDestroyer) return "The Destroyer seeks for another world to devour...";
+                else if (boss.type == NPCID.SkeletronPrime) return "Skeletron Prime begins searching for a new victim...";
+                else if (boss.type == NPCID.Plantera) return "Plantera continues its rest within the jungle...";
+                else if (boss.type == NPCID.Golem) return "Golem deactivates in the bowels of the temple...";
+                else if (boss.type == NPCID.DukeFishron) return "Duke Fishron returns to the ocean depths...";
+                else if (boss.type == NPCID.CultistBoss) return "Lunatic Cultist goes back to its devoted worship...";
+                else if (boss.type == NPCID.MoonLordHead) return "Moon Lord has left this realm...";
+                else
+                {
+                    for (int i = 0; i < ModBossTypes.Count; i++)
+                    {
+                        if (boss.type == ModBossTypes[i]) return ModBossMessages[i];
+                        // If a mod has submitted a custom despawn message, it will display here
+                    }
+                    return boss.FullName + " has killed every player!";
+                    // Otherwise it defaults to this
+                }
+            }
+        }
+
+        public override void Initialize()
+        {
+            downedBetsy = false;
+        }
+
+        public override TagCompound Save()
+        {
+            var downed = new List<string>();
+            if (downedBetsy)
+            {
+                downed.Add("betsy");
+            }
+
+            return new TagCompound
+            {
+                {"downed", downed}
+            };
+        }
+
+        public override void Load(TagCompound tag)
+        {
+            var downed = tag.GetList<string>("downed");
+            downedBetsy = downed.Contains("betsy");
         }
     }
 }
