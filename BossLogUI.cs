@@ -756,8 +756,8 @@ namespace BossAssist
             bosslogbutton = new BossAssistButton(bookTexture, "Boss Log");
             bosslogbutton.Width.Set(34, 0f);
             bosslogbutton.Height.Set(38, 0f);
-            bosslogbutton.Left.Set(Main.PendingResolutionWidth - bosslogbutton.Width.Pixels - 190, 0f);
-            bosslogbutton.Top.Pixels = Main.PendingResolutionHeight - bosslogbutton.Height.Pixels - 8;
+            bosslogbutton.Left.Set(Main.screenWidth - bosslogbutton.Width.Pixels - 190, 0f);
+            bosslogbutton.Top.Pixels = Main.screenHeight - bosslogbutton.Height.Pixels - 8;
             bosslogbutton.OnClick += new MouseEvent(OpenBossLog);
             bosslogbutton.OnRightClick += new MouseEvent(OpenNextBoss);
             Append(bosslogbutton);
@@ -944,8 +944,8 @@ namespace BossAssist
             }
             else Append(bosslogbutton);
             
-            bosslogbutton.Left.Set(Main.PendingResolutionWidth - bosslogbutton.Width.Pixels - 190, 0f);
-            bosslogbutton.Top.Pixels = Main.PendingResolutionHeight - bosslogbutton.Height.Pixels - 8;
+            bosslogbutton.Left.Set(Main.screenWidth - bosslogbutton.Width.Pixels - 190, 0f);
+            bosslogbutton.Top.Pixels = Main.screenHeight - bosslogbutton.Height.Pixels - 8;
 
             if (PageNum == BossAssist.instance.setup.SortedBosses.Count - 1) PageTwo.RemoveChild(NextPage);
             else if (!PageTwo.HasChild(NextPage)) PageTwo.Append(NextPage);

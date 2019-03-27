@@ -25,6 +25,12 @@ namespace BossAssist
             {
                 BossTrophies.Add(new BossCollection(boss.source, boss.name));
             }
+            
+            foreach (BossCollection bossCollection in BossTrophies)
+            {
+                bossCollection.itemList = new List<Item>();
+                bossCollection.checkList = new List<bool>();
+            }
         }
         
         public override TagCompound Save()
@@ -60,9 +66,6 @@ namespace BossAssist
                 int currentC = c;
                 List<Item> templist = new List<Item>();
                 List<BossInfo> shortcut = BossAssist.instance.setup.SortedBosses;
-
-                if (BossTrophies[currentC].itemList == null) BossTrophies[currentC].itemList = new List<Item>();
-                if (BossTrophies[currentC].checkList == null) BossTrophies[currentC].checkList = new List<bool>();
 
                 foreach (int item in shortcut[shortcut.FindIndex(x => x.source == BossTrophies[currentC].modName && x.name == BossTrophies[currentC].bossName)].collection)
                 {
