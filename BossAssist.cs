@@ -6,6 +6,7 @@ using Terraria.ModLoader;
 using Terraria.UI;
 using Microsoft.Xna.Framework.Graphics;
 using ReLogic.Graphics;
+using Terraria.Graphics;
 
 namespace BossAssist
 {
@@ -16,6 +17,12 @@ namespace BossAssist
         internal UserInterface BossLogInterface;
         internal BossLogUI BossLog;
         internal SetupBossList setup;
+
+        //Zoom level, (for UIs)
+        public static Vector2 ZoomFactor; //0f == fully zoomed out, 1f == fully zoomed in
+
+        internal static UserInterface BossRadarUIInterface;
+        internal static BossRadarUI BossRadarUI;
 
         public BossAssist()
         {
@@ -36,6 +43,12 @@ namespace BossAssist
                 BossLog.Activate();
                 BossLogInterface = new UserInterface();
                 BossLogInterface.SetState(BossLog);
+
+                //important, after setup has been initialized
+                BossRadarUI = new BossRadarUI();
+                BossRadarUI.Activate();
+                BossRadarUIInterface = new UserInterface();
+                BossRadarUIInterface.SetState(BossRadarUI);
             }
         }
 
@@ -43,11 +56,19 @@ namespace BossAssist
         {
             instance = null;
             setup = null;
+            BossRadarUI.arrowTexture = null;
+        }
+
+        public override void ModifyTransformMatrix(ref SpriteViewMatrix Transform)
+        {
+            //this is needed for Boss Radar, so it takes the range at which to draw the icon properly
+            ZoomFactor = Transform.Zoom - (Vector2.UnitX + Vector2.UnitY);
         }
 
         public override void UpdateUI(GameTime gameTime)
         {
             if (BossLogInterface != null) BossLogInterface.Update(gameTime);
+            BossRadarUI.Update(gameTime);
         }
 
         public override void PostDrawFullscreenMap(ref string mouseText)
@@ -60,7 +81,15 @@ namespace BossAssist
             int MouseTextIndex = layers.FindIndex(layer => layer.Name.Equals("Vanilla: Mouse Text"));
             if (MouseTextIndex != -1)
             {
-                layers.Insert(MouseTextIndex, new LegacyGameInterfaceLayer("Boss Log",
+                layers.Insert(++MouseTextIndex, new LegacyGameInterfaceLayer("BossAssist: Boss Radar",
+                    delegate
+                    {
+                        BossRadarUIInterface.Draw(Main.spriteBatch, new GameTime());
+                        return true;
+                    },
+                    InterfaceScaleType.UI)
+                );
+                layers.Insert(MouseTextIndex, new LegacyGameInterfaceLayer("BossAssist: Boss Log",
                     delegate
                     {
                         if (BossLogUI.visible) BossLogInterface.Draw(Main.spriteBatch, new GameTime());
@@ -72,7 +101,7 @@ namespace BossAssist
             int InventoryIndex = layers.FindIndex(layer => layer.Name.Equals("Vanilla: Death Text"));
             if (InventoryIndex != -1)
             {
-                layers.Insert(InventoryIndex + 1, new LegacyGameInterfaceLayer("Respawn Timer",
+                layers.Insert(InventoryIndex + 1, new LegacyGameInterfaceLayer("BossAssist: Respawn Timer",
                     delegate
                     {
                         string timer;

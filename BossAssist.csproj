@@ -33,6 +33,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="BossRadarUI.cs" />
     <Compile Include="NPCAssist.cs" />
     <Compile Include="BossAssist.cs" />
     <Compile Include="DataManager.cs" />
@@ -59,17 +60,20 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>C:\Windows\Microsoft.NET\assembly\GAC_32\Microsoft.Xna.Framework.Xact\v4.0_4.0.0.0__842cf8be1de50553\Microsoft.Xna.Framework.Xact.dll</HintPath>
     </Reference>
-    <Reference Include="ReLogic">
-      <HintPath>D:\Visual Studio\References\ReLogic.dll</HintPath>
+    <Reference Include="ReLogic, Version=1.0.0.0, Culture=neutral, processorArchitecture=x86">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\references\ReLogic.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="Terraria">
-      <HintPath>E:\Steam\SteamApps\common\Terraria\Terraria.exe</HintPath>
+      <HintPath>..\..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Terraria Mod [v0.10.1.5]\Terraria.exe</HintPath>
     </Reference>
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Folder Include="Resources\" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>"E:\Steam\steamapps\common\terraria\tModLoaderServer.exe" -build "$(ProjectDir)\" -eac "$(TargetPath)"</PostBuildEvent>
+    <PostBuildEvent>"C:\Program Files (x86)\Steam\steamapps\common\Terraria Mod [v0.10.1.5]\tModLoaderServer.exe" -build "$(ProjectDir)\" -eac "$(TargetPath)"</PostBuildEvent>
   </PropertyGroup>
 </Project>
