@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Terraria;
@@ -9,25 +9,13 @@ namespace BossAssist
 {
     public static class MapAssist
     {
-        public static List<Vector2> bossBagPos;
-        public static List<int> bossBagType;
-
-        public static List<Vector2> fragmentPos;
-        public static List<int> fragmentType;
-
-        public static List<Vector2> scalesPos;
-        public static List<int> scalesType;
+        public static List<Vector2> whitelistPos;
+        public static List<int> whitelistType;
 
         internal static void FullMapInitialize()
         {
-            bossBagPos = new List<Vector2>();
-            bossBagType = new List<int>();
-
-            fragmentPos = new List<Vector2>();
-            fragmentType = new List<int>();
-
-            scalesPos = new List<Vector2>();
-            scalesType = new List<int>();
+            whitelistPos = new List<Vector2>();
+            whitelistType = new List<int>();
         }
 
         public static void DrawFullscreenMap(Mod mod, ref string mouseText)
@@ -38,32 +26,18 @@ namespace BossAssist
 
         private static void UpdateMapLocations()
         {
-            bossBagPos.Clear();
-            bossBagType.Clear();
-
-            fragmentPos.Clear();
-            fragmentType.Clear();
-
-            scalesPos.Clear();
-            scalesType.Clear();
+            whitelistPos.Clear();
+            whitelistType.Clear();
 
             for (int i = 0; i < Main.maxItems; i++)
             {
                 if (!Main.item[i].active) continue;
-                if (Main.item[i].consumable && Main.item[i].Name == "Treasure Bag" && Main.item[i].expert)
+                if (Main.item[i].consumable && Main.item[i].Name == "Treasure Bag" && Main.item[i].expert
+                || Main.item[i].rare == 9 && Main.item[i].damage <= 0 && Main.item[i].Name.Contains("Fragment")
+                || Main.item[i].type == ItemID.ShadowScale || Main.item[i].type == ItemID.TissueSample)
                 {
-                    bossBagPos.Add(Main.item[i].Center);
-                    bossBagType.Add(Main.item[i].type);
-                }
-                if (Main.item[i].rare == 9 && Main.item[i].damage <= 0 && Main.item[i].Name.Contains("Fragment"))
-                {
-                    fragmentPos.Add(Main.item[i].Center);
-                    fragmentType.Add(Main.item[i].type);
-                }
-                if (Main.item[i].type == ItemID.ShadowScale || Main.item[i].type == ItemID.TissueSample)
-                {
-                    scalesPos.Add(Main.item[i].Center);
-                    scalesType.Add(Main.item[i].type);
+                    whitelistPos.Add(Main.item[i].Center);
+                    whitelistType.Add(Main.item[i].type);
                 }
             }
         }
@@ -73,22 +47,10 @@ namespace BossAssist
             Texture2D drawTexture = null;
             Vector2 drawPosition = new Vector2();
             
-            foreach (Vector2 bossBag in bossBagPos)
+            foreach (Vector2 item in whitelistPos)
             {
-                drawTexture = Main.itemTexture[bossBagType[bossBagPos.IndexOf(bossBag)]];
-                drawPosition = CalculateDrawPos(new Vector2(bossBag.X / 16, bossBag.Y / 16));
-                DrawTextureOnMap(drawTexture, drawPosition);
-            }
-            foreach (Vector2 frag in fragmentPos)
-            {
-                drawTexture = Main.itemTexture[fragmentType[fragmentPos.IndexOf(frag)]];
-                drawPosition = CalculateDrawPos(new Vector2(frag.X / 16, frag.Y / 16));
-                DrawTextureOnMap(drawTexture, drawPosition);
-            }
-            foreach (Vector2 loot in scalesPos)
-            {
-                drawTexture = Main.itemTexture[scalesType[scalesPos.IndexOf(loot)]];
-                drawPosition = CalculateDrawPos(new Vector2(loot.X / 16, loot.Y / 16));
+                drawTexture = Main.itemTexture[whitelistType[whitelistPos.IndexOf(item)]];
+                drawPosition = CalculateDrawPos(new Vector2(item.X / 16, item.Y / 16));
                 DrawTextureOnMap(drawTexture, drawPosition);
             }
         }
