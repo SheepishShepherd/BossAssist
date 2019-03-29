@@ -14,17 +14,15 @@ namespace BossAssist
         {
             if (npc.type == NPCID.DD2Betsy) WorldAssist.downedBetsy = true;
 
-            string partName = npc.FullName;
+            string partName = npc.GetFullNetName().ToString();
             if (npc.type == NPCID.LunarTowerSolar || npc.type == NPCID.LunarTowerVortex || npc.type == NPCID.LunarTowerNebula || npc.type == NPCID.LunarTowerStardust)
             {
-                if (Main.netMode == 0) Main.NewText("The " + npc.GetFullNetName() + " has been destroyed", Colors.RarityPurple);
-                else NetMessage.BroadcastChatMessage(NetworkText.FromLiteral("The " + npc.GetFullNetName() + " has been destroyed"), Colors.RarityPurple);
+                if (Main.netMode == 0) Main.NewText("The " + npc.GetFullNetName().ToString() + " has been destroyed", Colors.RarityPurple);
+                else NetMessage.BroadcastChatMessage(NetworkText.FromLiteral("The " + npc.GetFullNetName().ToString() + " has been destroyed"), Colors.RarityPurple);
             }
             else if (CheckForNPCType(npc))
             {
                 if (npc.type == NPCID.SkeletronHand) partName = "Skeletron Hand";
-                else partName = npc.FullName;
-
                 if (Main.netMode == 0) Main.NewText("The " + partName + " is down!", Colors.RarityGreen);
                 else NetMessage.BroadcastChatMessage(NetworkText.FromLiteral("The " + npc.FullName + " is down!"), Colors.RarityGreen);
             }
