@@ -1,4 +1,4 @@
-﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
@@ -56,118 +56,114 @@ namespace BossAssist
                 {
                     Vector2 between = npc.Center - Main.LocalPlayer.Center;
                     //screen "radius" is 960, "diameter" is 1920
-                    int diameter = 1300 * 3; //radar range, basically two screens wide
+                    
+                    int ltype = npc.type;
+                    Vector2 ldrawPos = Vector2.Zero;
 
-                    if (between.Length() < diameter / 2)
+                    //when to draw the icon, has to be PendingResolutionWidth/Height because ScreenWidth/Height doesn't work in this case
+
+                    //rectangle at which the npc ISN'T rendered (so its sprite won't draw aswell as the NPC itself)
+
+                    //independent of resolution, but scales with zoom factor
+
+                    float zoomFactorX = 0.25f * BossAssist.ZoomFactor.X;
+                    float zoomFactorY = 0.25f * BossAssist.ZoomFactor.Y;
+                    //for some reason with small hitbox NPCs, it starts drawing closer to the player than it should when zoomed in too much
+                    if (zoomFactorX > 0.175f) zoomFactorX = 0.175f;
+                    if (zoomFactorY > 0.175f) zoomFactorY = 0.175f;
+
+                    int rectPosX = (int)(Main.screenPosition.X + (Main.PendingResolutionWidth * zoomFactorX));
+                    int rectPosY = (int)(Main.screenPosition.Y + (Main.PendingResolutionHeight * zoomFactorY));
+                    int rectWidth = (int)(Main.PendingResolutionWidth * (1 - 2f * zoomFactorX));
+                    int rectHeight = (int)(Main.PendingResolutionHeight * (1 - 2f * zoomFactorY));
+
+                    //padding for npc height
+                    Rectangle rectangle = new Rectangle(rectPosX - npc.width / 2,
+                        rectPosY - npc.height / 2,
+                        rectWidth + npc.width,
+                        rectHeight + npc.height);
+
+                    if (!rectangle.Intersects(npc.getRect()))
                     {
-                        int ltype = npc.type;
-                        Vector2 ldrawPos = Vector2.Zero;
+                        if (between.X == 0f) between.X = 0.0001f; //protection against division by zero
+                        if (between.Y == 0f) between.Y = 0.0001f; //protection against NaN
+                        float slope = between.Y / between.X;
 
-                        //when to draw the icon, has to be PendingResolutionWidth/Height because ScreenWidth/Height doesn't work in this case
+                        Vector2 pad = new Vector2
+                            (
+                            (Main.screenWidth + npc.width) / 2,
+                            (Main.screenHeight + npc.height) / 2
+                            );
 
-                        //rectangle at which the npc ISN'T rendered (so its sprite won't draw aswell as the NPC itself)
+                        //first iteration
 
-                        //independent of resolution, but scales with zoom factor
-
-                        float zoomFactorX = 0.25f * BossAssist.ZoomFactor.X;
-                        float zoomFactorY = 0.25f * BossAssist.ZoomFactor.Y;
-                        //for some reason with small hitbox NPCs, it starts drawing closer to the player than it should when zoomed in too much
-                        if (zoomFactorX > 0.175f) zoomFactorX = 0.175f;
-                        if (zoomFactorY > 0.175f) zoomFactorY = 0.175f;
-
-                        int rectPosX = (int)(Main.screenPosition.X + (Main.PendingResolutionWidth * zoomFactorX));
-                        int rectPosY = (int)(Main.screenPosition.Y + (Main.PendingResolutionHeight * zoomFactorY));
-                        int rectWidth = (int)(Main.PendingResolutionWidth * (1 - 2f * zoomFactorX));
-                        int rectHeight = (int)(Main.PendingResolutionHeight * (1 - 2f * zoomFactorY));
-
-                        //padding for npc height
-                        Rectangle rectangle = new Rectangle(rectPosX - npc.width / 2,
-                            rectPosY - npc.height / 2,
-                            rectWidth + npc.width,
-                            rectHeight + npc.height);
-
-                        if (!rectangle.Intersects(npc.getRect()))
+                        if (between.Y > 0) //target below player
                         {
-                            if (between.X == 0f) between.X = 0.0001f; //protection against division by zero
-                            if (between.Y == 0f) between.Y = 0.0001f; //protection against NaN
-                            float slope = between.Y / between.X;
-
-                            Vector2 pad = new Vector2
-                                (
-                                (Main.screenWidth + npc.width) / 2,
-                                (Main.screenHeight + npc.height) / 2
-                                );
-
-                            //first iteration
-
-                            if (between.Y > 0) //target below player
+                            //use lower border which is positive
+                            if (between.Y > pad.Y)
                             {
-                                //use lower border which is positive
-                                if (between.Y > pad.Y)
-                                {
-                                    ldrawPos.Y = pad.Y;
-                                }
-                                else
-                                {
-                                    ldrawPos.Y = between.Y;
-                                }
+                                ldrawPos.Y = pad.Y;
                             }
-                            else //target above player
+                            else
                             {
-                                //use upper border which is negative
-                                if (between.Y < -pad.Y)
-                                {
-                                    ldrawPos.Y = -pad.Y;
-                                }
-                                else
-                                {
-                                    ldrawPos.Y = between.Y;
-                                }
+                                ldrawPos.Y = between.Y;
                             }
-                            ldrawPos.X = ldrawPos.Y / slope;
-
-                            //second iteration
-
-                            if (ldrawPos.X > 0) //if x is outside the right edge
-                            {
-                                //use right border which is positive
-                                if (ldrawPos.X > pad.X)
-                                {
-                                    ldrawPos.X = pad.X;
-                                }
-                            }
-                            else if (ldrawPos.X <= 0) //if x is outside the left edge
-                            {
-                                //use left border which is negative
-                                if (ldrawPos.X <= -pad.X)
-                                {
-                                    ldrawPos.X = -pad.X;
-                                }
-                            }
-                            ldrawPos.Y = ldrawPos.X * slope;
-
-                            //revert offset
-                            ldrawPos += new Vector2(pad.X, pad.Y);
-
-                            //since we were operating based on Center to Center, we need to put the drawPos back to position instead
-                            ldrawPos -= new Vector2(npc.width / 2, npc.height / 2);
-
-                            //get boss head texture if it has one and use that instead of the NPC texture
-                            int lbossHeadIndex = -1;
-                            if (npc.GetBossHeadTextureIndex() >= 0 && npc.GetBossHeadTextureIndex() < Main.npcHeadBossTexture.Length)
-                            {
-                                lbossHeadIndex = npc.GetBossHeadTextureIndex();
-                            }
-
-                            //get color if NPC has any
-                            drawColor.Add(npc.color);
-
-                            type.Add(ltype);
-                            bossHeadIndex.Add(lbossHeadIndex);
-                            drawPos.Add(ldrawPos);
-                            drawRotation.Add((float)Math.Atan2(between.Y, between.X));
-                            drawLOS.Add(Collision.CanHitLine(Main.LocalPlayer.position, Main.LocalPlayer.width, Main.LocalPlayer.height, npc.position, npc.width, npc.height));
                         }
+                        else //target above player
+                        {
+                            //use upper border which is negative
+                            if (between.Y < -pad.Y)
+                            {
+                                ldrawPos.Y = -pad.Y;
+                            }
+                            else
+                            {
+                                ldrawPos.Y = between.Y;
+                            }
+                        }
+                        ldrawPos.X = ldrawPos.Y / slope;
+
+                        //second iteration
+
+                        if (ldrawPos.X > 0) //if x is outside the right edge
+                        {
+                            //use right border which is positive
+                            if (ldrawPos.X > pad.X)
+                            {
+                                ldrawPos.X = pad.X;
+                            }
+                        }
+                        else if (ldrawPos.X <= 0) //if x is outside the left edge
+                        {
+                            //use left border which is negative
+                            if (ldrawPos.X <= -pad.X)
+                            {
+                                ldrawPos.X = -pad.X;
+                            }
+                        }
+                        ldrawPos.Y = ldrawPos.X * slope;
+
+                        //revert offset
+                        ldrawPos += new Vector2(pad.X, pad.Y);
+
+                        //since we were operating based on Center to Center, we need to put the drawPos back to position instead
+                        ldrawPos -= new Vector2(npc.width / 2, npc.height / 2);
+
+                        //get boss head texture if it has one and use that instead of the NPC texture
+                        int lbossHeadIndex = -1;
+                        if (npc.GetBossHeadTextureIndex() >= 0 && npc.GetBossHeadTextureIndex() < Main.npcHeadBossTexture.Length)
+                        {
+                            lbossHeadIndex = npc.GetBossHeadTextureIndex();
+                        }
+
+                        //get color if NPC has any
+                        drawColor.Add(npc.color);
+
+                        type.Add(ltype);
+                        bossHeadIndex.Add(lbossHeadIndex);
+                        drawPos.Add(ldrawPos);
+                        drawRotation.Add((float)Math.Atan2(between.Y, between.X));
+                        drawLOS.Add(Collision.CanHitLine(Main.LocalPlayer.position, Main.LocalPlayer.width, Main.LocalPlayer.height, npc.position, npc.width, npc.height));
                     }
                 }
             }
@@ -209,7 +205,7 @@ namespace BossAssist
                 int tempWidth = tex.Width;
                 int tempHeight = tex.Height / Main.npcFrameCount[type[i]];
                 float scaleFactor = (float)64 / ((tempWidth > tempHeight) ? tempWidth : tempHeight);
-                if(scaleFactor > 0.75f) //because when fully zoomed out, the texture isn't actually drawn in 1:1 scale onto the screen
+                if (scaleFactor > 0.75f) //because when fully zoomed out, the texture isn't actually drawn in 1:1 scale onto the screen
                 {
                     scaleFactor = 0.75f; //only scale down, don't scale up
                 }
