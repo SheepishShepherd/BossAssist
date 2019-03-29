@@ -25,6 +25,10 @@ namespace BossAssist
 
         internal static int[] whitelistNPCs;
 
+        internal static List<int> idList;
+
+        internal static bool whitelistFilled = false;
+
         public override void OnInitialize()
         {
             type = new List<int>();
@@ -34,14 +38,7 @@ namespace BossAssist
             drawLOS = new List<bool>();
             drawColor = new List<Color>();
             arrowTexture = BossAssist.instance.GetTexture("Resources/RadarArrow");
-
-            List<int> idList = new List<int>();
-            for (int i = 0; i < BossAssist.instance.setup.SortedBosses.Count; i++)
-            {
-                idList.Add(BossAssist.instance.setup.SortedBosses[i].id);
-            }
-            whitelistNPCs = idList.ToArray();
-            Array.Sort(whitelistNPCs);
+            idList = new List<int>();
         }
 
         private bool SetDrawPos()
@@ -185,6 +182,17 @@ namespace BossAssist
         {
             base.Update(gameTime);
 
+            if (!whitelistFilled)
+            {
+                List<int> idList = new List<int>();
+                for (int i = 0; i < BossAssist.instance.setup.SortedBosses.Count; i++)
+                {
+                    idList.Add(BossAssist.instance.setup.SortedBosses[i].id);
+                }
+                whitelistNPCs = idList.ToArray();
+                Array.Sort(whitelistNPCs);
+                whitelistFilled = true;
+            }
             //do stuff
             SetDrawPos();
         }
