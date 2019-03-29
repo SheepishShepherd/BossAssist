@@ -25,8 +25,6 @@ namespace BossAssist
 
         internal static int[] whitelistNPCs;
 
-        internal static List<int> idList;
-
         internal static bool whitelistFilled = false;
 
         public override void OnInitialize()
@@ -38,7 +36,6 @@ namespace BossAssist
             drawLOS = new List<bool>();
             drawColor = new List<Color>();
             arrowTexture = BossAssist.instance.GetTexture("Resources/RadarArrow");
-            idList = new List<int>();
         }
 
         private bool SetDrawPos()
@@ -204,7 +201,7 @@ namespace BossAssist
 
             for (int i = 0; i < type.Count; i++)
             {
-                Vector2 ldrawPos = drawPos[i]; //contains npc.Center basically, but for screenpos
+                Vector2 ldrawPos = drawPos[i]; //contains top left corner of draw pos
                 Texture2D tex = Main.npcTexture[type[i]];
 
                 //MIGHT NOT BE NEEDED ANYMORE, but leave it in, in case some modded boss doesn't have boss head texture
@@ -229,11 +226,13 @@ namespace BossAssist
                     finalHeight = tex.Height;
                 }
 
-                //adjust pos if outside of screen, more padding
-                if (ldrawPos.X >= Main.screenWidth - finalWidth * 1.25f) ldrawPos.X = Main.screenWidth - finalWidth * 1.25f;
-                if (ldrawPos.X <= finalWidth * 1.25f) ldrawPos.X = finalWidth * 1.25f;
-                if (ldrawPos.Y >= Main.screenHeight - finalHeight * 1.25f) ldrawPos.Y = Main.screenHeight - finalHeight * 1.25f;
-                if (ldrawPos.Y <= finalHeight * 1.25f) ldrawPos.Y = finalHeight * 1.25f;
+                int arrowPad = 10;
+
+                //adjust pos if outside of screen, more padding for arrow
+                if (ldrawPos.X >= Main.screenWidth - finalWidth - arrowPad) ldrawPos.X = Main.screenWidth - finalWidth - arrowPad;
+                if (ldrawPos.X <= finalWidth + arrowPad) ldrawPos.X = finalWidth + arrowPad;
+                if (ldrawPos.Y >= Main.screenHeight - finalHeight - arrowPad) ldrawPos.Y = Main.screenHeight - finalHeight - arrowPad;
+                if (ldrawPos.Y <= finalHeight + arrowPad) ldrawPos.Y = finalHeight + arrowPad;
 
                 //create rect around center
                 Rectangle outputRect = new Rectangle((int)ldrawPos.X - (finalWidth / 2), (int)ldrawPos.Y - (finalHeight / 2), finalWidth, finalHeight);
