@@ -32,18 +32,47 @@ namespace BossAssist
             if (SpecialBossCheck(npc) != -1 && npc.playerInteraction[Main.myPlayer]) // Requires the player to participate in the boss fight
             {
                 Player player = Main.LocalPlayer;
+
+                int recordAttempt = WorldAssist.RecordTimers[SpecialBossCheck(npc)]; // Trying to set a new record
                 int currentRecord = player.GetModPlayer<PlayerAssist>().AllBossRecords[SpecialBossCheck(npc)].stat.fightTime;
-                int recordAttempt = WorldAssist.RecordTimers[SpecialBossCheck(npc)];
-                int currentBrink = player.GetModPlayer<PlayerAssist>().AllBossRecords[SpecialBossCheck(npc)].stat.brink;
-                int brinkAttempt = WorldAssist.BrinkChecker[SpecialBossCheck(npc)];
+                int worstRecord = player.GetModPlayer<PlayerAssist>().AllBossRecords[SpecialBossCheck(npc)].stat.fightTime2;
+
+                int brinkAttempt = WorldAssist.BrinkChecker[SpecialBossCheck(npc)]; // Trying to set a new record
                 int MaxLife = WorldAssist.MaxHealth[SpecialBossCheck(npc)];
+                int currentBrink = player.GetModPlayer<PlayerAssist>().AllBossRecords[SpecialBossCheck(npc)].stat.brink;
+                int worstBrink = player.GetModPlayer<PlayerAssist>().AllBossRecords[SpecialBossCheck(npc)].stat.brink2;
+
+                // Somehow account for "No Hit Bosses"
+
+                int dodgeTimeAttempt = WorldAssist.DodgeTimer[SpecialBossCheck(npc)];
+                int currentDodgeTime = player.GetModPlayer<PlayerAssist>().AllBossRecords[SpecialBossCheck(npc)].stat.dodgeTime;
+                int dodgeAttempt = WorldAssist.AttackCounter[SpecialBossCheck(npc)];
+                int currentDodges = player.GetModPlayer<PlayerAssist>().AllBossRecords[SpecialBossCheck(npc)].stat.totalDodges;
+                int worstDodges = player.GetModPlayer<PlayerAssist>().AllBossRecords[SpecialBossCheck(npc)].stat.totalDodges2;
 
                 if (EaterOfWorldsCheck(npc))
                 {
                     player.GetModPlayer<PlayerAssist>().AllBossRecords[SpecialBossCheck(npc)].stat.kills++;
+                    
+                    if (recordAttempt < currentRecord && currentRecord != 0 && worstRecord == 0)
+                    {
+                        // First make the current record the worst record if no worst record has been made and a new record was made
+                        player.GetModPlayer<PlayerAssist>().AllBossRecords[SpecialBossCheck(npc)].stat.fightTime2 = currentRecord;
+                    }
                     if (recordAttempt < currentRecord || currentRecord == 0)
                     {
+                        //The player has beaten their best record, so we have to overwrite the old record with the new one
                         player.GetModPlayer<PlayerAssist>().AllBossRecords[SpecialBossCheck(npc)].stat.fightTime = recordAttempt;
+                    }
+                    else if (recordAttempt > worstRecord || worstRecord == 0)
+                    {
+                        //The player has beaten their worst record, so we have to overwrite the old record with the new one
+                        player.GetModPlayer<PlayerAssist>().AllBossRecords[SpecialBossCheck(npc)].stat.fightTime2 = recordAttempt;
+                    }
+
+                    if (brinkAttempt < currentBrink && currentBrink != 0 && worstBrink == 0)
+                    {
+                        player.GetModPlayer<PlayerAssist>().AllBossRecords[SpecialBossCheck(npc)].stat.brink2 = currentBrink;
                     }
                     if (brinkAttempt < currentBrink || currentBrink == 0)
                     {
@@ -51,7 +80,36 @@ namespace BossAssist
                         double newHealth = (double)brinkAttempt / (double)MaxLife; // Casts may be redundant, but this setup doesn't work without them.
                         player.GetModPlayer<PlayerAssist>().AllBossRecords[SpecialBossCheck(npc)].stat.brinkPercent = (int)(newHealth * 100);
                     }
-                    if ((recordAttempt < currentRecord || currentRecord == 0) || (brinkAttempt < currentBrink || currentBrink == 0))
+                    else if (brinkAttempt > worstBrink || worstBrink == 0)
+                    {
+                        player.GetModPlayer<PlayerAssist>().AllBossRecords[SpecialBossCheck(npc)].stat.brink2 = brinkAttempt;
+                        double newHealth = (double)brinkAttempt / (double)MaxLife; // Casts may be redundant, but this setup doesn't work without them.
+                        player.GetModPlayer<PlayerAssist>().AllBossRecords[SpecialBossCheck(npc)].stat.brinkPercent2 = (int)(newHealth * 100);
+                    }
+                    
+                    if (dodgeTimeAttempt > currentDodgeTime || currentDodgeTime == 0)
+                    {
+                        // There is no "worse record" for this one so just overwrite any better records made
+                        player.GetModPlayer<PlayerAssist>().AllBossRecords[SpecialBossCheck(npc)].stat.dodgeTime = dodgeTimeAttempt;
+                    }
+
+                    if (dodgeAttempt < currentDodges && currentDodges != 0 && worstDodges == 0)
+                    {
+                        player.GetModPlayer<PlayerAssist>().AllBossRecords[SpecialBossCheck(npc)].stat.totalDodges2 = currentDodges;
+                    }
+                    if (dodgeAttempt < currentDodges || currentDodges == 0)
+                    {
+                        player.GetModPlayer<PlayerAssist>().AllBossRecords[SpecialBossCheck(npc)].stat.totalDodges = dodgeAttempt;
+                    }
+                    else if (dodgeAttempt > worstDodges || worstDodges == 0)
+                    {
+                        player.GetModPlayer<PlayerAssist>().AllBossRecords[SpecialBossCheck(npc)].stat.totalDodges2 = dodgeAttempt;
+                    }
+
+                    WorldAssist.DodgeTimer[SpecialBossCheck(npc)] = 0;
+                    WorldAssist.AttackCounter[SpecialBossCheck(npc)] = 0;
+
+                    if ((recordAttempt < currentRecord || currentRecord == 0) || (brinkAttempt < currentBrink || currentBrink == 0) || (dodgeAttempt < currentDodges || dodgeAttempt == 0))
                     {
                         Rectangle rect = new Rectangle((int)player.position.X, (int)player.position.Y, player.width, player.height);
                         CombatText.NewText(rect, Color.LightYellow, "New Record!", true);
@@ -64,7 +122,9 @@ namespace BossAssist
         public static int GetListNum(NPC boss)
         {
             List<BossInfo> BL = BossAssist.instance.setup.SortedBosses;
-            if (boss.type < Main.maxNPCTypes) return BL.FindIndex(x => x.name == boss.FullName && x.source == "Vanilla");
+            if (boss.type == NPCID.MoonLordCore) return BL.FindIndex(x => x.id == NPCID.MoonLordHead);
+            if (boss.type == NPCID.Spazmatism) return BL.FindIndex(x => x.id == NPCID.Retinazer);
+            if (boss.type < Main.maxNPCTypes) return BL.FindIndex(x => x.id == boss.type);
             else return BL.FindIndex(x => x.name == boss.FullName && x.source == boss.modNPC.mod.Name);
         }
 
@@ -82,16 +142,16 @@ namespace BossAssist
                 || (npcType.type == NPCID.Spazmatism && Main.npc.Any(otherBoss => otherBoss.type == NPCID.Retinazer && otherBoss.active));
         }
 
-        public int SpecialBossCheck(NPC npc)
+        public static int SpecialBossCheck(NPC npc)
         {
             List<BossInfo> BL = BossAssist.instance.setup.SortedBosses;
 
-            if (npc.type == NPCID.MoonLordCore) return BL.FindIndex(x => x.name == "Moon Lord" && x.source == "Vanilla");
-            if (TwinsCheck(npc)) return BL.FindIndex(x => x.name == "The Twins" && x.source == "Vanilla");
+            if (npc.type == NPCID.MoonLordCore) return BL.FindIndex(x => x.id == NPCID.MoonLordHead);
+            else if (TwinsCheck(npc)) return BL.FindIndex(x => x.id == NPCID.Retinazer);
             else return GetListNum(npc);
         }
 
-        public bool TwinsCheck(NPC npc)
+        public static bool TwinsCheck(NPC npc)
         {
             if (npc.type == NPCID.Retinazer)
             {

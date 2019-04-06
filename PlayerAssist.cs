@@ -25,14 +25,14 @@ namespace BossAssist
             {
                 BossTrophies.Add(new BossCollection(boss.source, boss.name));
             }
-            
+
             foreach (BossCollection bossCollection in BossTrophies)
             {
                 bossCollection.itemList = new List<Item>();
                 bossCollection.checkList = new List<bool>();
             }
         }
-        
+
         public override TagCompound Save()
         {
             TagCompound saveData = new TagCompound
@@ -66,13 +66,16 @@ namespace BossAssist
                 int currentC = c;
                 List<Item> templist = new List<Item>();
                 List<BossInfo> shortcut = BossAssist.instance.setup.SortedBosses;
-
-                foreach (int item in shortcut[shortcut.FindIndex(x => x.source == BossTrophies[currentC].modName && x.name == BossTrophies[currentC].bossName)].collection)
+                
+                if (shortcut.FindIndex(x => x.source == BossTrophies[currentC].modName && x.name == BossTrophies[currentC].bossName) != -1)
                 {
-                    // Possibly include "sorting" code that sorts the Mask, Trophy, and Music Box first
-                    Item newItem = new Item();
-                    newItem.SetDefaults(item);
-                    templist.Add(newItem);
+                    for (int d = 0; d < shortcut[shortcut.FindIndex(x => x.source == BossTrophies[currentC].modName && x.name == BossTrophies[currentC].bossName)].collection.Count; d++)
+                    {
+                        // Possibly include "sorting" code that sorts the Mask, Trophy, and Music Box first
+                        Item newItem = new Item();
+                        newItem.SetDefaults(shortcut[currentC].collection[d]);
+                        templist.Add(newItem);
+                    }
                 }
 
                 for (int i = 0; i < templist.Count; i++)
@@ -113,27 +116,56 @@ namespace BossAssist
             WorldAssist.RecordTimers.Clear();
         }
 
-        // Debugging
+        public override void OnHitByNPC(NPC npc, int damage, bool crit)
+        {
+            if (WorldAssist.ActiveBossesList.Contains(true))
+            {
+                for (int i = 0; i < WorldAssist.DodgeTimer.Count; i++)
+                {
+                    if (WorldAssist.ActiveBossesList[i])
+                    {
+                        WorldAssist.AttackCounter[i]++;
+                    }
+                }
+                for (int i = 0; i < WorldAssist.DodgeTimer.Count; i++)
+                {
+                    WorldAssist.DodgeTimer[i] = 0;
+                }
+            }
+        }
+
+        public override void OnHitByProjectile(Projectile proj, int damage, bool crit)
+        {
+            if (WorldAssist.ActiveBossesList.Contains(true))
+            {
+                for (int i = 0; i < WorldAssist.DodgeTimer.Count; i++)
+                {
+                    if (WorldAssist.ActiveBossesList[i])
+                    {
+                        WorldAssist.AttackCounter[i]++;
+                    }
+                }
+                for (int i = 0; i < WorldAssist.DodgeTimer.Count; i++)
+                {
+                    WorldAssist.DodgeTimer[i] = 0;
+                }
+            }
+        }
+
+        /* Debugging
         public bool testButton = true;
 
         public override void ResetEffects()
         {
-            if (player.controlSmart && testButton)
+            if (player.controlSmart && testButton))
             {
                 testButton = false;
                 Main.NewText("> Start of Debug for " + mod.Name, Color.Goldenrod);
-                Main.NewText(AllBossRecords[0].bossName + " from " + AllBossRecords[0].modName);
-                Main.NewText("[" + AllBossRecords[0].stat.fightTime + ", " + AllBossRecords[0].stat.kills + ", " + AllBossRecords[0].stat.deaths + "]");
-                string recordChain = "Record Timers: ";
-                foreach (int i in WorldAssist.RecordTimers)
-                {
-                    recordChain += i + ", ";
-                }
-                Main.NewText(recordChain);
-                Main.NewText(Colors.RarityBlue.Hex3());
+                Main.NewText(WorldAssist.ActiveBossesList[BossAssist.instance.setup.SortedBosses.FindIndex(x => x.id == NPCID.Retinazer)]);
                 Main.NewText("> End of Debug for " + mod.Name, Color.IndianRed);
             }
             if (player.releaseSmart) testButton = true;
         }
+        */
     }
 }

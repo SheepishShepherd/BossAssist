@@ -6,6 +6,13 @@ using System.Collections.Generic;
 using System.Linq;
 using Terraria.ModLoader.IO;
 
+/*
+ * Twins broken despawn messages (of course) 
+ * 
+ * 
+ */
+
+
 namespace BossAssist
 {
     public class WorldAssist : ModWorld
@@ -13,10 +20,12 @@ namespace BossAssist
         public static bool downedBetsy;
 
         public static List<bool> ActiveBossesList = new List<bool>();
-        public static List<int> RecordTimers = new List<int>(0);
-        public static List<int> BrinkChecker = new List<int>(0);
-        public static List<int> MaxHealth = new List<int>(0);
-        public static List<bool> DeathTracker = new List<bool>(0);
+        public static List<int> RecordTimers = new List<int>();
+        public static List<int> BrinkChecker = new List<int>();
+        public static List<int> MaxHealth = new List<int>();
+        public static List<bool> DeathTracker = new List<bool>();
+        public static List<int> DodgeTimer = new List<int>(); // Turn into List
+        public static List<int> AttackCounter = new List<int>(); // Amount of attacks taken
 
         public static List<int> ModBossTypes = new List<int>();
         public static List<string> ModBossMessages = new List<string>();
@@ -37,11 +46,11 @@ namespace BossAssist
                 NPC b = Main.npc[n];
 
                 // Bosses listed below are special cases
-                ActiveBossesList[BL.FindIndex(x => x.name == "Eater of Worlds" && x.source == "Vanilla")] = Main.npc.Any(npc => (npc.type == 13 || npc.type == 14 || npc.type == 15) && npc.active);
-                ActiveBossesList[BL.FindIndex(x => x.name == "The Twins" && x.source == "Vanilla")] = Main.npc.Any(npc => (npc.type == NPCID.Spazmatism || npc.type == NPCID.Retinazer) && npc.active);
-                ActiveBossesList[BL.FindIndex(x => x.name == "Moon Lord" && x.source == "Vanilla")] = Main.npc.Any(npc => (npc.type == NPCID.MoonLordCore || npc.type == NPCID.MoonLordHand || npc.type == NPCID.MoonLordHead) && npc.active);
+                ActiveBossesList[BL.FindIndex(x => x.id == NPCID.EaterofWorldsHead)] = Main.npc.Any(npc => (npc.type == 13 || npc.type == 14 || npc.type == 15) && npc.active);
+                ActiveBossesList[BL.FindIndex(x => x.id == NPCID.Retinazer)] = Main.npc.Any(npc => (npc.type == NPCID.Spazmatism || npc.type == NPCID.Retinazer) && npc.active);
+                ActiveBossesList[BL.FindIndex(x => x.id == NPCID.MoonLordHead)] = Main.npc.Any(npc => (npc.type == NPCID.MoonLordCore || npc.type == NPCID.MoonLordHand || npc.type == NPCID.MoonLordHead) && npc.active);
 
-                if (NPCAssist.GetListNum(b) != -1)
+                if (NPCAssist.SpecialBossCheck(b) != -1)
                 {
                     if (b.active)
                     {
@@ -50,7 +59,7 @@ namespace BossAssist
                     }
                     else if (!b.active && Main.npc.All(npc => (npc.type == b.type && !npc.active) || npc.type != b.type)) // <INACTIVE NPC>
                     {
-                        if (b.FullName == BL[NPCAssist.GetListNum(b)].name && ActiveBossesList[NPCAssist.GetListNum(b)])
+                        if (ActiveBossesList[NPCAssist.GetListNum(b)])
                         {
                             if ((b.type != NPCID.MoonLordHead && b.life >= 0) || (b.type == NPCID.MoonLordHead && b.life < 0))
                             {
@@ -71,6 +80,7 @@ namespace BossAssist
                     if (ActiveBossesList[active])
                     {
                         RecordTimers[active]++;
+                        DodgeTimer[active]++;
                         MaxHealth[active] = Main.LocalPlayer.statLifeMax2;
                         if (BrinkChecker[active] == 0 || (Main.LocalPlayer.statLife < BrinkChecker[active] && Main.LocalPlayer.statLife > 0))
                         {
@@ -82,6 +92,7 @@ namespace BossAssist
                         MaxHealth[active] = Main.LocalPlayer.statLifeMax2;
                         RecordTimers[active] = 0;
                         BrinkChecker[active] = 0;
+                        DodgeTimer[active] = 0;
                     }
                 }
                 else
@@ -89,6 +100,7 @@ namespace BossAssist
                     MaxHealth[active] = Main.LocalPlayer.statLifeMax2;
                     RecordTimers[active] = 0;
                     BrinkChecker[active] = 0;
+                    DodgeTimer[active] = 0;
                 }
             }
         }
@@ -169,15 +181,24 @@ namespace BossAssist
                 while (MaxHealth.Count > shortcut) MaxHealth.RemoveAt(MaxHealth.Count - 1);
                 while (MaxHealth.Count < shortcut) MaxHealth.Add(0);
             }
+            if (AttackCounter.Count != shortcut)
+            {
+                while (AttackCounter.Count > shortcut) AttackCounter.RemoveAt(MaxHealth.Count - 1);
+                while (AttackCounter.Count < shortcut) AttackCounter.Add(0);
+            }
+            if (DodgeTimer.Count != shortcut)
+            {
+                while (DodgeTimer.Count > shortcut) DodgeTimer.RemoveAt(MaxHealth.Count - 1);
+                while (DodgeTimer.Count < shortcut) DodgeTimer.Add(0);
+            }
         }
 
         public string GetDespawnMessage(NPC boss)
         {
             if (Main.player.Any(playerCheck => playerCheck.active && !playerCheck.dead)) // If any player is active and alive
             {
-                if (Main.dayTime && (boss.type == 4 || boss.type == 125 || boss.type == 126 || boss.type == 134))
+                if (Main.dayTime && (boss.type == NPCID.EyeofCthulhu || boss.type == NPCID.TheDestroyer || boss.type == NPCID.Retinazer || boss.type == NPCID.Spazmatism))
                 {
-                    // Bosses that despawn upon day time: EoC, Retinazar, Spazmatism, The Destroyer
                     return boss.FullName + " flees as the sun rises...";
                 }
                 else if (boss.type == NPCID.WallofFlesh) return "Wall of Flesh has managed to cross the underworld...";
