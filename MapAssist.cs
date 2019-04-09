@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Terraria;
@@ -32,9 +32,9 @@ namespace BossAssist
             for (int i = 0; i < Main.maxItems; i++)
             {
                 if (!Main.item[i].active) continue;
-                if (Main.item[i].consumable && Main.item[i].Name == "Treasure Bag" && Main.item[i].expert
-                || Main.item[i].rare == 9 && Main.item[i].damage <= 0 && Main.item[i].Name.Contains("Fragment")
-                || Main.item[i].type == ItemID.ShadowScale || Main.item[i].type == ItemID.TissueSample)
+                if ((Main.item[i].consumable && Main.item[i].Name == "Treasure Bag" && Main.item[i].expert) // Boss Treasure Bags
+                || (Main.item[i].rare == 9 && Main.item[i].damage <= 0 && Main.item[i].Name.Contains("Fragment")) // Tower Fragments
+                || (Main.item[i].type == ItemID.ShadowScale || Main.item[i].type == ItemID.TissueSample)) // Shadow Scales and Tissue Samples
                 {
                     whitelistPos.Add(Main.item[i].Center);
                     whitelistType.Add(Main.item[i].type);

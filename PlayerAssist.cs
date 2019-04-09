@@ -20,19 +20,29 @@ namespace BossAssist
                 AllBossRecords.Add(new BossRecord(boss.source, boss.name));
             }
 
+            // Make a new list of collections
             BossTrophies = new List<BossCollection>();
+            // For each boss added...
             foreach (BossInfo boss in BossAssist.instance.setup.SortedBosses)
             {
+                // 1.) Add a collection for the boss
                 BossTrophies.Add(new BossCollection(boss.source, boss.name));
-            }
-            
-            foreach (BossCollection bossCollection in BossTrophies)
-            {
-                bossCollection.itemList = new List<Item>();
-                bossCollection.checkList = new List<bool>();
+                // 2.) setup the item list and check off list for the boss
+                int index = BossTrophies.FindIndex(x => x.modName == boss.source && x.bossName == boss.name);
+                BossTrophies[index].itemList = new List<Item>();
+                BossTrophies[index].checkList = new List<bool>();
+                // 3.) Add the items setup in the SortedBosses list (checks dealt with in Load)
+                foreach (int collectible in BossAssist.instance.setup.SortedBosses[index].collection)
+                {
+                    Item newItem = new Item();
+                    newItem.SetDefaults(collectible);
+
+                    BossTrophies[index].itemList.Add(newItem);
+                    BossTrophies[index].checkList.Add(false);
+                }
             }
         }
-        
+
         public override TagCompound Save()
         {
             TagCompound saveData = new TagCompound
@@ -45,6 +55,7 @@ namespace BossAssist
         
         public override void Load(TagCompound tag)
         {
+            // Add new bosses to the list, and place existing ones accordingly
             List<BossRecord> TempRecordStorage = tag.Get<List<BossRecord>>("Records");
             foreach (BossRecord record in TempRecordStorage)
             {
@@ -53,42 +64,40 @@ namespace BossAssist
                 else AllBossRecords[index] = record;
             }
 
+            // Prepare the collections for the player. Putting unloaded bosses in the back and new/existing ones up front
             List<BossCollection> TempCollectionStorage = tag.Get<List<BossCollection>>("Collection");
+            List<BossCollection> TempCollectionStorage2 = tag.Get<List<BossCollection>>("Collection");
             foreach (BossCollection collection in TempCollectionStorage)
             {
                 int index = BossTrophies.FindIndex(x => x.modName == collection.modName && x.bossName == collection.bossName);
                 if (index == -1) BossTrophies.Add(collection);
-                else BossTrophies[index] = collection;
+                else
+                {
+                    BossTrophies[index] = collection;
+                }
             }
 
-            for (int c = 0; c < BossTrophies.Count; c++)
+            // Refill the Item and Check lists with the same method as above
+            foreach (BossCollection collection in TempCollectionStorage2)
             {
-                int currentC = c;
-                List<Item> templist = new List<Item>();
-                List<BossInfo> shortcut = BossAssist.instance.setup.SortedBosses;
-
-                foreach (int item in shortcut[shortcut.FindIndex(x => x.source == BossTrophies[currentC].modName && x.name == BossTrophies[currentC].bossName)].collection)
+                int index = BossTrophies.FindIndex(x => x.modName == collection.modName && x.bossName == collection.bossName);
+                foreach (Item item in collection.itemList)
                 {
-                    // Possibly include "sorting" code that sorts the Mask, Trophy, and Music Box first
-                    Item newItem = new Item();
-                    newItem.SetDefaults(item);
-                    templist.Add(newItem);
-                }
-
-                for (int i = 0; i < templist.Count; i++)
-                {
-                    int currentI = i;
-                    int index = BossTrophies[currentC].itemList.FindIndex(x => x == templist[currentI]);
-                    if (index == -1)
+                    int index2 = collection.itemList.FindIndex(x => x == item);
+                    if (index2 == -1)
                     {
-                        BossTrophies[currentC].itemList.Add(templist[currentI]);
-                        BossTrophies[currentC].checkList.Add(false);
+                        BossTrophies[index].itemList.Add(item);
+                        BossTrophies[index].checkList.Add(false);
                     }
-                    else BossTrophies[currentC].itemList[index] = templist[currentI];
+                    else
+                    {
+                        BossTrophies[index].itemList[index2] = item;
+                        BossTrophies[index].checkList[index2] = collection.checkList[index2];
+                    }
                 }
             }
         }
-        
+
         public static PlayerAssist Get(Player player, Mod mod)
         {
             return player.GetModPlayer<PlayerAssist>(mod);
@@ -113,27 +122,56 @@ namespace BossAssist
             WorldAssist.RecordTimers.Clear();
         }
 
-        // Debugging
+        public override void OnHitByNPC(NPC npc, int damage, bool crit)
+        {
+            if (WorldAssist.ActiveBossesList.Contains(true))
+            {
+                for (int i = 0; i < WorldAssist.DodgeTimer.Count; i++)
+                {
+                    if (WorldAssist.ActiveBossesList[i])
+                    {
+                        WorldAssist.AttackCounter[i]++;
+                    }
+                }
+                for (int i = 0; i < WorldAssist.DodgeTimer.Count; i++)
+                {
+                    WorldAssist.DodgeTimer[i] = 0;
+                }
+            }
+        }
+
+        public override void OnHitByProjectile(Projectile proj, int damage, bool crit)
+        {
+            if (WorldAssist.ActiveBossesList.Contains(true))
+            {
+                for (int i = 0; i < WorldAssist.DodgeTimer.Count; i++)
+                {
+                    if (WorldAssist.ActiveBossesList[i])
+                    {
+                        WorldAssist.AttackCounter[i]++;
+                    }
+                }
+                for (int i = 0; i < WorldAssist.DodgeTimer.Count; i++)
+                {
+                    WorldAssist.DodgeTimer[i] = 0;
+                }
+            }
+        }
+
+        /* Debugging
         public bool testButton = true;
 
         public override void ResetEffects()
         {
-            if (player.controlSmart && testButton)
+            if (player.controlSmart && testButton))
             {
                 testButton = false;
                 Main.NewText("> Start of Debug for " + mod.Name, Color.Goldenrod);
-                Main.NewText(AllBossRecords[0].bossName + " from " + AllBossRecords[0].modName);
-                Main.NewText("[" + AllBossRecords[0].stat.fightTime + ", " + AllBossRecords[0].stat.kills + ", " + AllBossRecords[0].stat.deaths + "]");
-                string recordChain = "Record Timers: ";
-                foreach (int i in WorldAssist.RecordTimers)
-                {
-                    recordChain += i + ", ";
-                }
-                Main.NewText(recordChain);
-                Main.NewText(Colors.RarityBlue.Hex3());
+                Main.NewText(WorldAssist.ActiveBossesList[BossAssist.instance.setup.SortedBosses.FindIndex(x => x.id == NPCID.Retinazer)]);
                 Main.NewText("> End of Debug for " + mod.Name, Color.IndianRed);
             }
             if (player.releaseSmart) testButton = true;
         }
+        */
     }
 }

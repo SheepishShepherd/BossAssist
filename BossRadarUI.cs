@@ -1,4 +1,4 @@
-using Microsoft.Xna.Framework;
+﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
@@ -87,6 +87,7 @@ namespace BossAssist
                     {
                         if (between.X == 0f) between.X = 0.0001f; //protection against division by zero
                         if (between.Y == 0f) between.Y = 0.0001f; //protection against NaN
+                        if (Main.LocalPlayer.gravDir != 1f) between.Y = -between.Y;
                         float slope = between.Y / between.X;
 
                         Vector2 pad = new Vector2

@@ -1,2 +1,10 @@
-[c/e73030:v0.3.0]  [c/e98b8b:12/31/2018]
-Boss Assistance adds simple features including: Despawn messages for bosses, a respawn timer while dead, and map locations of treasure bags and fragments. More in-depth descriptions of content available on the homepage, along with future content and the link to my discord server. 
+[c/e73030:v1.0.0]  [c/e98b8b:4/1/2019]
+Boss Highlights adds a few nifty features including: 
+  	 Despawn Messages
+  	 Respawn Timer
+  	 Item Map Detection
+  	 Boss Radar
+  	 Informational Boss Log
+This mod has NO effect on the way the game is played other than some visual information that could be considered as "quality of life". More in-depth descriptions of content available on the homepage, along with future content, github open source code, and the link to my discord server.
+
+Note: Boss Highlights heavily depends on other mods to provide information via PostSetupContent(). If you wish to add your own mod's bosses you can find out how within the homepage.

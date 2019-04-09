@@ -1,8 +1,9 @@
-﻿using Microsoft.Xna.Framework.Graphics;
+﻿using Microsoft.Xna.Framework.Graphics; //DELETE
 using System;
 using System.Collections.Generic;
 using Terraria;
 using Terraria.ID;
+using Terraria.ModLoader;
 
 namespace BossAssist
 {
@@ -19,29 +20,28 @@ namespace BossAssist
         {
             SortedBosses = new List<BossInfo>
             {
-                new BossInfo(1f, NPCID.KingSlime, "Vanilla", "King Slime", (() => NPC.downedSlimeKing), ItemID.SlimeCrown, SetupCollect(50), SetupLoot(50), BossAssist.instance.GetTexture("Resources/BossTextures/Boss50")),
-                new BossInfo(2f, NPCID.EyeofCthulhu, "Vanilla", "Eye of Cthulhu", (() => NPC.downedBoss1), ItemID.SuspiciousLookingEye,SetupCollect(4), SetupLoot(4), BossAssist.instance.GetTexture("Resources/BossTextures/Boss4")),
-                new BossInfo(3f, NPCID.EaterofWorldsHead, "Vanilla", "Eater of Worlds", (() => NPC.downedBoss2), ItemID.WormFood, SetupCollect(13), SetupLoot(13), BossAssist.instance.GetTexture("Resources/BossTextures/Boss13")),
-                new BossInfo(3f, NPCID.BrainofCthulhu, "Vanilla", "Brain of Cthulhu", (() => NPC.downedBoss2), ItemID.BloodySpine, SetupCollect(266), SetupLoot(266), BossAssist.instance.GetTexture("Resources/BossTextures/Boss266")),
-                new BossInfo(4f, NPCID.QueenBee, "Vanilla", "Queen Bee", (() => NPC.downedQueenBee), ItemID.Abeemination, SetupCollect(222), SetupLoot(222), BossAssist.instance.GetTexture("Resources/BossTextures/Boss222")),
-                new BossInfo(5f, NPCID.SkeletronHead, "Vanilla", "Skeletron", (() => NPC.downedBoss3), ItemID.ClothierVoodooDoll, SetupCollect(35), SetupLoot(35), BossAssist.instance.GetTexture("Resources/BossTextures/Boss35")),
-                new BossInfo(6f, NPCID.WallofFlesh, "Vanilla", "Wall of Flesh", (() => Main.hardMode), ItemID.GuideVoodooDoll, SetupCollect(113), SetupLoot(113), BossAssist.instance.GetTexture("Resources/BossTextures/Boss113")),
-                new BossInfo(7f, NPCID.Retinazer, "Vanilla", "The Twins", (() => NPC.downedMechBoss2), ItemID.MechanicalEye, SetupCollect(125), SetupLoot(125), BossAssist.instance.GetTexture("Resources/BossTextures/Boss125")),
-                new BossInfo(8f, NPCID.TheDestroyer, "Vanilla", "The Destroyer", (() => NPC.downedMechBoss1), ItemID.MechanicalWorm, SetupCollect(134), SetupLoot(134), BossAssist.instance.GetTexture("Resources/BossTextures/Boss134")),
-                new BossInfo(9f, NPCID.SkeletronPrime, "Vanilla", "Skeletron Prime", (() => NPC.downedMechBoss3), ItemID.MechanicalSkull, SetupCollect(127), SetupLoot(127), BossAssist.instance.GetTexture("Resources/BossTextures/Boss127")),
-                new BossInfo(10f, NPCID.Plantera, "Vanilla", "Plantera", (() => NPC.downedPlantBoss), 0, SetupCollect(262), SetupLoot(262), BossAssist.instance.GetTexture("Resources/BossTextures/Boss262")),
-                new BossInfo(11f, NPCID.Golem, "Vanilla", "Golem", (() => NPC.downedGolemBoss), ItemID.LihzahrdPowerCell,  SetupCollect(245), SetupLoot(245), BossAssist.instance.GetTexture("Resources/BossTextures/Boss245")),
-                new BossInfo(11.5f, NPCID.DD2Betsy, "Vanilla", "Betsy", (() => WorldAssist.downedBetsy), ItemID.DD2ElderCrystal, SetupCollect(551), SetupLoot(551), BossAssist.instance.GetTexture("Resources/BossTextures/Boss551")),
-                new BossInfo(12f, NPCID.DukeFishron, "Vanilla", "Duke Fishron", (() => NPC.downedFishron), ItemID.TruffleWorm, SetupCollect(370), SetupLoot(370), BossAssist.instance.GetTexture("Resources/BossTextures/Boss370")),
-                new BossInfo(13f, NPCID.CultistBoss, "Vanilla", "Lunatic Cultist", (() => NPC.downedAncientCultist), 0, SetupCollect(439), SetupLoot(439), BossAssist.instance.GetTexture("Resources/BossTextures/Boss439")),
-                new BossInfo(14f, NPCID.MoonLordHead, "Vanilla", "Moon Lord", (() => NPC.downedMoonlord), ItemID.CelestialSigil, SetupCollect(396), SetupLoot(396), BossAssist.instance.GetTexture("Resources/BossTextures/Boss396"))
+                new BossInfo(1f, NPCID.KingSlime, "Vanilla", "King Slime", (() => NPC.downedSlimeKing), ItemID.SlimeCrown, SetupCollect(50), SetupLoot(50), "BossAssist/Resources/BossTextures/Boss50"),
+                new BossInfo(2f, NPCID.EyeofCthulhu, "Vanilla", "Eye of Cthulhu", (() => NPC.downedBoss1), ItemID.SuspiciousLookingEye,SetupCollect(4), SetupLoot(4), "BossAssist/Resources/BossTextures/Boss4"),
+                new BossInfo(3f, NPCID.EaterofWorldsHead, "Vanilla", "Eater of Worlds", (() => NPC.downedBoss2), ItemID.WormFood, SetupCollect(13), SetupLoot(13), "BossAssist/Resources/BossTextures/Boss13"),
+                new BossInfo(3f, NPCID.BrainofCthulhu, "Vanilla", "Brain of Cthulhu", (() => NPC.downedBoss2), ItemID.BloodySpine, SetupCollect(266), SetupLoot(266), "BossAssist/Resources/BossTextures/Boss266"),
+                new BossInfo(4f, NPCID.QueenBee, "Vanilla", "Queen Bee", (() => NPC.downedQueenBee), ItemID.Abeemination, SetupCollect(222), SetupLoot(222), "BossAssist/Resources/BossTextures/Boss222"),
+                new BossInfo(5f, NPCID.SkeletronHead, "Vanilla", "Skeletron", (() => NPC.downedBoss3), ItemID.ClothierVoodooDoll, SetupCollect(35), SetupLoot(35), "BossAssist/Resources/BossTextures/Boss35"),
+                new BossInfo(6f, NPCID.WallofFlesh, "Vanilla", "Wall of Flesh", (() => Main.hardMode), ItemID.GuideVoodooDoll, SetupCollect(113), SetupLoot(113), "BossAssist/Resources/BossTextures/Boss113"),
+                new BossInfo(7f, NPCID.Retinazer, "Vanilla", "The Twins", (() => NPC.downedMechBoss2), ItemID.MechanicalEye, SetupCollect(125), SetupLoot(125), "BossAssist/Resources/BossTextures/Boss125"),
+                new BossInfo(8f, NPCID.TheDestroyer, "Vanilla", "The Destroyer", (() => NPC.downedMechBoss1), ItemID.MechanicalWorm, SetupCollect(134), SetupLoot(134), "BossAssist/Resources/BossTextures/Boss134"),
+                new BossInfo(9f, NPCID.SkeletronPrime, "Vanilla", "Skeletron Prime", (() => NPC.downedMechBoss3), ItemID.MechanicalSkull, SetupCollect(127), SetupLoot(127), "BossAssist/Resources/BossTextures/Boss127"),
+                new BossInfo(10f, NPCID.Plantera, "Vanilla", "Plantera", (() => NPC.downedPlantBoss), 0, SetupCollect(262), SetupLoot(262), "BossAssist/Resources/BossTextures/Boss262"),
+                new BossInfo(11f, NPCID.Golem, "Vanilla", "Golem", (() => NPC.downedGolemBoss), ItemID.LihzahrdPowerCell,  SetupCollect(245), SetupLoot(245), "BossAssist/Resources/BossTextures/Boss245"),
+                new BossInfo(11.5f, NPCID.DD2Betsy, "Vanilla", "Betsy", (() => WorldAssist.downedBetsy), ItemID.DD2ElderCrystal, SetupCollect(551), SetupLoot(551), "BossAssist/Resources/BossTextures/Boss551"),
+                new BossInfo(12f, NPCID.DukeFishron, "Vanilla", "Duke Fishron", (() => NPC.downedFishron), ItemID.TruffleWorm, SetupCollect(370), SetupLoot(370), "BossAssist/Resources/BossTextures/Boss370"),
+                new BossInfo(13f, NPCID.CultistBoss, "Vanilla", "Lunatic Cultist", (() => NPC.downedAncientCultist), 0, SetupCollect(439), SetupLoot(439), "BossAssist/Resources/BossTextures/Boss439"),
+                new BossInfo(14f, NPCID.MoonLordHead, "Vanilla", "Moon Lord", (() => NPC.downedMoonlord), ItemID.CelestialSigil, SetupCollect(396), SetupLoot(396), "BossAssist/Resources/BossTextures/Boss396")
             };
         }
         
-        internal void AddBoss(float val, int id, string source, string name, Func<bool> down, int spawn, List<int> collect, List<int> loot, Texture2D texture = null)
+        internal void AddBoss(float val, int id, string source, string name, Func<bool> down, int spawn, List<int> collect, List<int> loot, string texture)
         {
-            if (texture == null) texture = BossAssist.instance.GetTexture("Resources/tehBoss");
-            
+            if (!ModLoader.TextureExists(texture)) texture = "BossAssist/Resources/tehBoss";        
             SortedBosses.Add(new BossInfo(val, id, source, name, down, spawn, collect, loot, texture));
             SortedBosses.Sort((x, y) => x.progression.CompareTo(y.progression));
         }
@@ -493,11 +493,9 @@ namespace BossAssist
         internal List<int> loot;
         internal List<int> collection;
 
-        internal Texture2D pageTexture;
+        internal string pageTexture;
 
-
-
-        internal BossInfo(float progression, int id, string source, string name, Func<bool> downed, int spawnItem, List<int> collection, List<int> loot, Texture2D pageTexture)
+        internal BossInfo(float progression, int id, string source, string name, Func<bool> downed, int spawnItem, List<int> collection, List<int> loot, string pageTexture = null)
         {
             this.progression = progression;
             this.id = id;
@@ -507,8 +505,6 @@ namespace BossAssist
             this.spawnItem = spawnItem;
             this.collection = collection;
             this.loot = loot;
-
-            if (pageTexture == null) this.pageTexture = BossAssist.instance.GetTexture("Resources/tehBoss");
             this.pageTexture = pageTexture;
         }
     }
