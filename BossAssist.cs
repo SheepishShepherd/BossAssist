@@ -84,7 +84,7 @@ namespace BossAssist
                 layers.Insert(MouseTextIndex, new LegacyGameInterfaceLayer("BossAssist: Boss Log",
                     delegate
                     {
-                        if (BossLogUI.visible) BossLogInterface.Draw(Main.spriteBatch, new GameTime());
+                        BossLogInterface.Draw(Main.spriteBatch, new GameTime());
                         return true;
                     },
                     InterfaceScaleType.UI)

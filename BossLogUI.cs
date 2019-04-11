@@ -12,9 +12,10 @@ using Terraria.ID;
 using Terraria.ModLoader;
 using Terraria.UI;
 
-//collection items not triggering (possibly overhaul)
+// Change the Credits to opted mods to a UIList so it can scroll if it gets too long
+// BUG: If UI overlaps with inventory, hovering over the overlap crashes the game
 
-// add Orian DireWofl and myself to credits
+// Boss Log UI has been changed to close the inventory when visible and opens the inventory when clsoing the UI
 
 namespace BossAssist
 {
@@ -807,14 +808,20 @@ namespace BossAssist
         {
             if (!visible) return;
             base.DrawSelf(spriteBatch);
+            Main.playerInventory = false;
+            
             if (ContainsPoint(Main.MouseScreen) && !PlayerInput.IgnoreMouseInterface)
             {
                 // Needed to remove mousetext from outside sources when using the Boss Log
                 Main.player[Main.myPlayer].mouseInterface = true;
                 Main.LocalPlayer.showItemIcon = false;
+                Main.LocalPlayer.showItemIcon2 = -1;
                 Main.ItemIconCacheUpdate(0);
                 Main.mouseText = false;
-                Main.HoverItem = null;
+                Item newItem = new Item();
+                newItem.SetDefaults(ItemID.None);
+                Main.HoverItem = newItem;
+                Main.hoverItemName = "";
                 Main.HoveringOverAnNPC = false;
                 Main.LocalPlayer.talkNPC = -1;
             }
@@ -1086,11 +1093,20 @@ namespace BossAssist
             if (!visible)
             {
                 RemoveChild(bosslogbutton);
-                BossLogPanel.visible = false;
-                BookUI.visible = false;
             }
             else Append(bosslogbutton);
+
+            if (BossLogPanel.visible && BookUI.visible)
+            {
+                if (Main.LocalPlayer.controlInv)
+                {
+                    BossLogPanel.visible = false;
+                    BookUI.visible = false;
+                    Main.playerInventory = true;
+                }
+            }
             
+            // We rewrite the position of the button to make sure it updates with the screen res
             bosslogbutton.Left.Pixels = Main.screenWidth - bosslogbutton.Width.Pixels - 190;
             bosslogbutton.Top.Pixels = Main.screenHeight - bosslogbutton.Height.Pixels - 8;
             bossLogPanel.Left.Pixels = (Main.screenWidth / 2) - (bossLogPanel.Width.Pixels / 2);
@@ -1170,7 +1186,7 @@ namespace BossAssist
 
         private void OpenBossLog(UIMouseEvent evt, UIElement listeningElement)
         {
-            if (BossLogPanel.visible)
+            if (BossLogPanel.visible && BookUI.visible)
             {
                 BossLogPanel.visible = false;
                 BookUI.visible = false;
