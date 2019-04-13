@@ -32,21 +32,22 @@ namespace BossAssist
             if (SpecialBossCheck(npc) != -1 && npc.playerInteraction[Main.myPlayer]) // Requires the player to participate in the boss fight
             {
                 Player player = Main.LocalPlayer;
+                PlayerAssist modplayer = PlayerAssist.Get(player, mod);
 
-                int recordAttempt = WorldAssist.RecordTimers[SpecialBossCheck(npc)]; // Trying to set a new record
+                int recordAttempt = modplayer.RecordTimers[SpecialBossCheck(npc)]; // Trying to set a new record
                 int currentRecord = player.GetModPlayer<PlayerAssist>().AllBossRecords[SpecialBossCheck(npc)].stat.fightTime;
                 int worstRecord = player.GetModPlayer<PlayerAssist>().AllBossRecords[SpecialBossCheck(npc)].stat.fightTime2;
 
-                int brinkAttempt = WorldAssist.BrinkChecker[SpecialBossCheck(npc)]; // Trying to set a new record
-                int MaxLife = WorldAssist.MaxHealth[SpecialBossCheck(npc)];
+                int brinkAttempt = modplayer.BrinkChecker[SpecialBossCheck(npc)]; // Trying to set a new record
+                int MaxLife = modplayer.MaxHealth[SpecialBossCheck(npc)];
                 int currentBrink = player.GetModPlayer<PlayerAssist>().AllBossRecords[SpecialBossCheck(npc)].stat.brink;
                 int worstBrink = player.GetModPlayer<PlayerAssist>().AllBossRecords[SpecialBossCheck(npc)].stat.brink2;
 
                 // Somehow account for "No Hit Bosses"
 
-                int dodgeTimeAttempt = WorldAssist.DodgeTimer[SpecialBossCheck(npc)];
+                int dodgeTimeAttempt = modplayer.DodgeTimer[SpecialBossCheck(npc)];
                 int currentDodgeTime = player.GetModPlayer<PlayerAssist>().AllBossRecords[SpecialBossCheck(npc)].stat.dodgeTime;
-                int dodgeAttempt = WorldAssist.AttackCounter[SpecialBossCheck(npc)];
+                int dodgeAttempt = modplayer.AttackCounter[SpecialBossCheck(npc)];
                 int currentDodges = player.GetModPlayer<PlayerAssist>().AllBossRecords[SpecialBossCheck(npc)].stat.totalDodges;
                 int worstDodges = player.GetModPlayer<PlayerAssist>().AllBossRecords[SpecialBossCheck(npc)].stat.totalDodges2;
 
@@ -106,8 +107,8 @@ namespace BossAssist
                         player.GetModPlayer<PlayerAssist>().AllBossRecords[SpecialBossCheck(npc)].stat.totalDodges2 = dodgeAttempt;
                     }
 
-                    WorldAssist.DodgeTimer[SpecialBossCheck(npc)] = 0;
-                    WorldAssist.AttackCounter[SpecialBossCheck(npc)] = 0;
+                    modplayer.DodgeTimer[SpecialBossCheck(npc)] = 0;
+                    modplayer.AttackCounter[SpecialBossCheck(npc)] = 0;
 
                     if ((recordAttempt < currentRecord || currentRecord == 0) || (brinkAttempt < currentBrink || currentBrink == 0) || (dodgeAttempt < currentDodges || dodgeAttempt == 0))
                     {

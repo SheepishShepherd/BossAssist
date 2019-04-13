@@ -41,7 +41,7 @@ namespace BossAssist
         
         internal void AddBoss(float val, int id, string source, string name, Func<bool> down, int spawn, List<int> collect, List<int> loot, string texture)
         {
-            if (!ModLoader.TextureExists(texture)) texture = "BossAssist/Resources/tehBoss";        
+            if (!ModLoader.TextureExists(texture)) texture = "BossAssist/Resources/BossTextures/Boss0";        
             SortedBosses.Add(new BossInfo(val, id, source, name, down, spawn, collect, loot, texture));
             SortedBosses.Sort((x, y) => x.progression.CompareTo(y.progression));
         }

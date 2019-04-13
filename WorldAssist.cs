@@ -6,29 +6,15 @@ using System.Collections.Generic;
 using System.Linq;
 using Terraria.ModLoader.IO;
 
-/*
- * Twins broken despawn messages (of course) 
- * 
- * 
- */
-
-
 namespace BossAssist
 {
     public class WorldAssist : ModWorld
     {
         public static bool downedBetsy;
-
         public static List<bool> ActiveBossesList = new List<bool>();
-        public static List<int> RecordTimers = new List<int>();
-        public static List<int> BrinkChecker = new List<int>();
-        public static List<int> MaxHealth = new List<int>();
-        public static List<bool> DeathTracker = new List<bool>();
-        public static List<int> DodgeTimer = new List<int>(); // Turn into List
-        public static List<int> AttackCounter = new List<int>(); // Amount of attacks taken
-
         public static List<int> ModBossTypes = new List<int>();
         public static List<string> ModBossMessages = new List<string>();
+        public static List<bool> ActiveSpecialBosses = new List<bool>();
         
         string EventKey = "";
         bool isBloodMoon = false;
@@ -39,68 +25,88 @@ namespace BossAssist
         public override void PreUpdate()
         {
             List<BossInfo> BL = BossAssist.instance.setup.SortedBosses;
-            ResetArrays(BL.Count);
+            PlayerAssist player = PlayerAssist.Get(Main.LocalPlayer, mod);
+            ResetArrays(BL.Count, player);
 
+            // Bosses listed below are special cases
+            ActiveBossesList[BL.FindIndex(x => x.id == NPCID.EaterofWorldsHead)] = Main.npc.Any(npc => (npc.type == 13 || npc.type == 14 || npc.type == 15) && npc.active);
+            ActiveBossesList[BL.FindIndex(x => x.id == NPCID.Retinazer)] = Main.npc.Any(npc => (npc.type == NPCID.Spazmatism || npc.type == NPCID.Retinazer) && npc.active);
+            ActiveBossesList[BL.FindIndex(x => x.id == NPCID.MoonLordHead)] = Main.npc.Any(npc => (npc.type == NPCID.MoonLordCore || npc.type == NPCID.MoonLordHand || npc.type == NPCID.MoonLordHead) && npc.active);
+            
             for (int n = 0; n < Main.maxNPCs; n++)
             {
                 NPC b = Main.npc[n];
 
-                // Bosses listed below are special cases
-                ActiveBossesList[BL.FindIndex(x => x.id == NPCID.EaterofWorldsHead)] = Main.npc.Any(npc => (npc.type == 13 || npc.type == 14 || npc.type == 15) && npc.active);
-                ActiveBossesList[BL.FindIndex(x => x.id == NPCID.Retinazer)] = Main.npc.Any(npc => (npc.type == NPCID.Spazmatism || npc.type == NPCID.Retinazer) && npc.active);
-                ActiveBossesList[BL.FindIndex(x => x.id == NPCID.MoonLordHead)] = Main.npc.Any(npc => (npc.type == NPCID.MoonLordCore || npc.type == NPCID.MoonLordHand || npc.type == NPCID.MoonLordHead) && npc.active);
-
-                if (NPCAssist.SpecialBossCheck(b) != -1)
+                if (NPCAssist.GetListNum(b) != -1)
                 {
-                    if (b.active)
-                    {
-                        ActiveBossesList[NPCAssist.GetListNum(b)] = true;
-                        if (Main.LocalPlayer.dead) DeathTracker[NPCAssist.GetListNum(b)] = true;
-                    }
-                    else if (!b.active && Main.npc.All(npc => (npc.type == b.type && !npc.active) || npc.type != b.type)) // <INACTIVE NPC>
+                    if (NPCAssist.GetListNum(b) == BL.FindIndex(x => x.id == NPCID.EaterofWorldsHead)
+                    || NPCAssist.GetListNum(b) == BL.FindIndex(x => x.id == NPCID.Retinazer)
+                    || NPCAssist.GetListNum(b) == BL.FindIndex(x => x.id == NPCID.MoonLordHead))
                     {
                         if (ActiveBossesList[NPCAssist.GetListNum(b)])
                         {
-                            if ((b.type != NPCID.MoonLordHead && b.life >= 0) || (b.type == NPCID.MoonLordHead && b.life < 0))
-                            {
-                                if (Main.netMode == NetmodeID.SinglePlayer) Main.NewText(GetDespawnMessage(b), Colors.RarityPurple);
-                                else NetMessage.BroadcastChatMessage(NetworkText.FromLiteral(GetDespawnMessage(b)), Colors.RarityPurple);
-                            }
+                            if (Main.LocalPlayer.dead) player.DeathTracker[NPCAssist.GetListNum(b)] = true;
+                            ActiveSpecialBosses[GetSpecialNum(NPCAssist.GetListNum(b))] = true;
                         }
-                        ActiveBossesList[NPCAssist.GetListNum(b)] = false;
+                        else if (ActiveSpecialBosses[GetSpecialNum(NPCAssist.GetListNum(b))])
+                        {
+                            if (Main.netMode == NetmodeID.SinglePlayer) Main.NewText(GetDespawnMessage(b), Colors.RarityPurple);
+                            else NetMessage.BroadcastChatMessage(NetworkText.FromLiteral(GetDespawnMessage(b)), Colors.RarityPurple);
+                            ActiveSpecialBosses[GetSpecialNum(NPCAssist.GetListNum(b))] = false;
+                        }
+                    }
+                    else
+                    {
+                        if (b.active)
+                        {
+                            ActiveBossesList[NPCAssist.GetListNum(b)] = true;
+                            if (Main.LocalPlayer.dead) player.DeathTracker[NPCAssist.GetListNum(b)] = true;
+                        }
+                        else if (!b.active && Main.npc.All(npc => (npc.type == b.type && !npc.active) || npc.type != b.type)) // <INACTIVE NPC>
+                        {
+                            if (ActiveBossesList[NPCAssist.GetListNum(b)])
+                            {
+                                if ((b.type != NPCID.MoonLordHead && b.life >= 0) || (b.type == NPCID.MoonLordHead && b.life < 0))
+                                {
+                                    if (Main.netMode == NetmodeID.SinglePlayer) Main.NewText(GetDespawnMessage(b), Colors.RarityPurple);
+                                    else NetMessage.BroadcastChatMessage(NetworkText.FromLiteral(GetDespawnMessage(b)), Colors.RarityPurple);
+                                }
+                            }
+                            ActiveBossesList[NPCAssist.GetListNum(b)] = false;
+                        }
                     }
                 }
             }
 
-         /// Record Timers
+            /// Record Timers
             for (int active = 0; active < ActiveBossesList.Count; active++)
             {
                 if (!Main.LocalPlayer.dead)
                 {
                     if (ActiveBossesList[active])
                     {
-                        RecordTimers[active]++;
-                        DodgeTimer[active]++;
-                        MaxHealth[active] = Main.LocalPlayer.statLifeMax2;
-                        if (BrinkChecker[active] == 0 || (Main.LocalPlayer.statLife < BrinkChecker[active] && Main.LocalPlayer.statLife > 0))
+                        player.RecordTimers[active]++;
+                        player.DodgeTimer[active]++;
+                        player.MaxHealth[active] = Main.LocalPlayer.statLifeMax2;
+                        if (player.BrinkChecker[active] == 0 || (Main.LocalPlayer.statLife < player.BrinkChecker[active] && Main.LocalPlayer.statLife > 0))
                         {
-                            BrinkChecker[active] = Main.LocalPlayer.statLife;
+                            player.BrinkChecker[active] = Main.LocalPlayer.statLife;
                         }
                     }
                     else
                     {
-                        MaxHealth[active] = Main.LocalPlayer.statLifeMax2;
-                        RecordTimers[active] = 0;
-                        BrinkChecker[active] = 0;
-                        DodgeTimer[active] = 0;
+                        player.MaxHealth[active] = Main.LocalPlayer.statLifeMax2;
+                        player.RecordTimers[active] = 0;
+                        player.BrinkChecker[active] = 0;
+                        player.DodgeTimer[active] = 0;
                     }
                 }
                 else
                 {
-                    MaxHealth[active] = Main.LocalPlayer.statLifeMax2;
-                    RecordTimers[active] = 0;
-                    BrinkChecker[active] = 0;
-                    DodgeTimer[active] = 0;
+                    player.MaxHealth[active] = Main.LocalPlayer.statLifeMax2;
+                    player.RecordTimers[active] = 0;
+                    player.BrinkChecker[active] = 0;
+                    player.DodgeTimer[active] = 0;
                 }
             }
         }
@@ -154,45 +160,6 @@ namespace BossAssist
             }
         }
 
-        public void ResetArrays(int shortcut)
-        {
-            if (ActiveBossesList.Count != shortcut)
-            {
-                while (ActiveBossesList.Count > shortcut) ActiveBossesList.RemoveAt(ActiveBossesList.Count - 1);
-                while (ActiveBossesList.Count < shortcut) ActiveBossesList.Add(false);
-            }
-            if (DeathTracker.Count != shortcut)
-            {
-                while (DeathTracker.Count > shortcut) DeathTracker.RemoveAt(DeathTracker.Count - 1);
-                while (DeathTracker.Count < shortcut) DeathTracker.Add(false);
-            }
-            if (RecordTimers.Count != shortcut)
-            {
-                while (RecordTimers.Count > shortcut) RecordTimers.RemoveAt(RecordTimers.Count - 1);
-                while (RecordTimers.Count < shortcut) RecordTimers.Add(0);
-            }
-            if (BrinkChecker.Count != shortcut)
-            {
-                while (BrinkChecker.Count > shortcut) BrinkChecker.RemoveAt(BrinkChecker.Count - 1);
-                while (BrinkChecker.Count < shortcut) BrinkChecker.Add(0);
-            }
-            if (MaxHealth.Count != shortcut)
-            {
-                while (MaxHealth.Count > shortcut) MaxHealth.RemoveAt(MaxHealth.Count - 1);
-                while (MaxHealth.Count < shortcut) MaxHealth.Add(0);
-            }
-            if (AttackCounter.Count != shortcut)
-            {
-                while (AttackCounter.Count > shortcut) AttackCounter.RemoveAt(MaxHealth.Count - 1);
-                while (AttackCounter.Count < shortcut) AttackCounter.Add(0);
-            }
-            if (DodgeTimer.Count != shortcut)
-            {
-                while (DodgeTimer.Count > shortcut) DodgeTimer.RemoveAt(MaxHealth.Count - 1);
-                while (DodgeTimer.Count < shortcut) DodgeTimer.Add(0);
-            }
-        }
-
         public string GetDespawnMessage(NPC boss)
         {
             if (Main.player.Any(playerCheck => playerCheck.active && !playerCheck.dead)) // If any player is active and alive
@@ -202,6 +169,7 @@ namespace BossAssist
                     return boss.FullName + " flees as the sun rises...";
                 }
                 else if (boss.type == NPCID.WallofFlesh) return "Wall of Flesh has managed to cross the underworld...";
+                else if (boss.type == NPCID.Retinazer) return "The Twins are no longer after you...";
                 else return boss.FullName + " is no longer after you...";
             }
             else
@@ -213,15 +181,14 @@ namespace BossAssist
                 else if (boss.type == NPCID.QueenBee) return "Queen Bee returns to her colony's nest...";
                 else if (boss.type == NPCID.SkeletronHead) return "Skeletron continues to torture the Old Man...";
                 else if (boss.type == NPCID.WallofFlesh) return "Wall of Flesh has managed to cross the underworld...";
-                else if (boss.type == NPCID.Retinazer) return "Retinazer continues its observations...";
-                else if (boss.type == NPCID.Spazmatism) return "Spazmatism continues its observations...";
+                else if (boss.type == NPCID.Retinazer) return "The Twins continue their observations...";
                 else if (boss.type == NPCID.TheDestroyer) return "The Destroyer seeks for another world to devour...";
                 else if (boss.type == NPCID.SkeletronPrime) return "Skeletron Prime begins searching for a new victim...";
                 else if (boss.type == NPCID.Plantera) return "Plantera continues its rest within the jungle...";
                 else if (boss.type == NPCID.Golem) return "Golem deactivates in the bowels of the temple...";
                 else if (boss.type == NPCID.DukeFishron) return "Duke Fishron returns to the ocean depths...";
                 else if (boss.type == NPCID.CultistBoss) return "Lunatic Cultist goes back to its devoted worship...";
-                else if (boss.type == NPCID.MoonLordHead) return "Moon Lord has left this realm...";
+                else if (boss.type == NPCID.MoonLordCore) return "Moon Lord has left this realm...";
                 else
                 {
                     for (int i = 0; i < ModBossTypes.Count; i++)
@@ -233,6 +200,57 @@ namespace BossAssist
                     // Otherwise it defaults to this
                 }
             }
+        }
+
+        public void ResetArrays(int shortcut, PlayerAssist player)
+        {
+            if (ActiveBossesList.Count != shortcut)
+            {
+                while (ActiveBossesList.Count > shortcut) ActiveBossesList.RemoveAt(ActiveBossesList.Count - 1);
+                while (ActiveBossesList.Count < shortcut) ActiveBossesList.Add(false);
+            }
+            if (player.DeathTracker.Count != shortcut)
+            {
+                while (player.DeathTracker.Count > shortcut) player.DeathTracker.RemoveAt(player.DeathTracker.Count - 1);
+                while (player.DeathTracker.Count < shortcut) player.DeathTracker.Add(false);
+            }
+            if (player.RecordTimers.Count != shortcut)
+            {
+                while (player.RecordTimers.Count > shortcut) player.RecordTimers.RemoveAt(player.RecordTimers.Count - 1);
+                while (player.RecordTimers.Count < shortcut) player.RecordTimers.Add(0);
+            }
+            if (player.BrinkChecker.Count != shortcut)
+            {
+                while (player.BrinkChecker.Count > shortcut) player.BrinkChecker.RemoveAt(player.BrinkChecker.Count - 1);
+                while (player.BrinkChecker.Count < shortcut) player.BrinkChecker.Add(0);
+            }
+            if (player.MaxHealth.Count != shortcut)
+            {
+                while (player.MaxHealth.Count > shortcut) player.MaxHealth.RemoveAt(player.MaxHealth.Count - 1);
+                while (player.MaxHealth.Count < shortcut) player.MaxHealth.Add(0);
+            }
+            if (player.AttackCounter.Count != shortcut)
+            {
+                while (player.AttackCounter.Count > shortcut) player.AttackCounter.RemoveAt(player.AttackCounter.Count - 1);
+                while (player.AttackCounter.Count < shortcut) player.AttackCounter.Add(0);
+            }
+            if (player.DodgeTimer.Count != shortcut)
+            {
+                while (player.DodgeTimer.Count > shortcut) player.DodgeTimer.RemoveAt(player.DodgeTimer.Count - 1);
+                while (player.DodgeTimer.Count < shortcut) player.DodgeTimer.Add(0);
+            }
+            while (ActiveSpecialBosses.Count != 3)
+            {
+                ActiveSpecialBosses.Add(false);
+            }
+        }
+
+        public int GetSpecialNum(int specialPos)
+        {
+            if (specialPos == BossAssist.instance.setup.SortedBosses.FindIndex(x => x.id == NPCID.EaterofWorldsHead)) return 0;
+            if (specialPos == BossAssist.instance.setup.SortedBosses.FindIndex(x => x.id == NPCID.Retinazer)) return 1;
+            if (specialPos == BossAssist.instance.setup.SortedBosses.FindIndex(x => x.id == NPCID.MoonLordHead)) return 2;
+            return -1; // Shouldn't get to this point
         }
 
         public override void Initialize()

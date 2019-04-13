@@ -11,6 +11,13 @@ namespace BossAssist
     {
         public List<BossRecord> AllBossRecords;
         public List<BossCollection> BossTrophies;
+        
+        public List<int> RecordTimers;
+        public List<int> BrinkChecker;
+        public List<int> MaxHealth;
+        public List<bool> DeathTracker;
+        public List<int> DodgeTimer; // Turn into List
+        public List<int> AttackCounter;
 
         public override void Initialize()
         {
@@ -41,6 +48,14 @@ namespace BossAssist
                     BossTrophies[index].checkList.Add(false);
                 }
             }
+
+            // For being able to complete records in Multiplayer
+            RecordTimers = new List<int>(BossAssist.instance.setup.SortedBosses.Count);
+            BrinkChecker = new List<int>(BossAssist.instance.setup.SortedBosses.Count);
+            MaxHealth = new List<int>(BossAssist.instance.setup.SortedBosses.Count);
+            DeathTracker = new List<bool>(BossAssist.instance.setup.SortedBosses.Count);
+            DodgeTimer = new List<int>(BossAssist.instance.setup.SortedBosses.Count);
+            AttackCounter = new List<int>(BossAssist.instance.setup.SortedBosses.Count);
         }
 
         public override TagCompound Save()
@@ -105,37 +120,38 @@ namespace BossAssist
 
         public override void OnRespawn(Player player)
         {
-            for (int i = 0; i < BossAssist.instance.setup.SortedBosses.Count; i++)
+            for (int i = 0; i < DeathTracker.Count; i++)
             {
-                if (WorldAssist.DeathTracker[i])
-                {
-                    Main.LocalPlayer.GetModPlayer<PlayerAssist>().AllBossRecords[i].stat.deaths++;
-                    WorldAssist.DeathTracker[i] = false;
-                }
+                if (DeathTracker[i]) Main.LocalPlayer.GetModPlayer<PlayerAssist>().AllBossRecords[i].stat.deaths++;
+                DeathTracker[i] = false;
             }
-            base.OnRespawn(player);
         }
 
         public override void OnEnterWorld(Player player)
         {
             CombatText.NewText(player.getRect(), Color.LightGreen, "Thanks for playing with Shepherd's mods!!", true, false);
-            WorldAssist.RecordTimers.Clear();
+            RecordTimers = new List<int>(BossAssist.instance.setup.SortedBosses.Count);
+            BrinkChecker = new List<int>(BossAssist.instance.setup.SortedBosses.Count);
+            MaxHealth = new List<int>(BossAssist.instance.setup.SortedBosses.Count);
+            DeathTracker = new List<bool>(BossAssist.instance.setup.SortedBosses.Count);
+            DodgeTimer = new List<int>(BossAssist.instance.setup.SortedBosses.Count);
+            AttackCounter = new List<int>(BossAssist.instance.setup.SortedBosses.Count);
         }
 
         public override void OnHitByNPC(NPC npc, int damage, bool crit)
         {
             if (WorldAssist.ActiveBossesList.Contains(true))
             {
-                for (int i = 0; i < WorldAssist.DodgeTimer.Count; i++)
+                for (int i = 0; i < DodgeTimer.Count; i++)
                 {
                     if (WorldAssist.ActiveBossesList[i])
                     {
-                        WorldAssist.AttackCounter[i]++;
+                        AttackCounter[i]++;
                     }
                 }
-                for (int i = 0; i < WorldAssist.DodgeTimer.Count; i++)
+                for (int i = 0; i < DodgeTimer.Count; i++)
                 {
-                    WorldAssist.DodgeTimer[i] = 0;
+                    DodgeTimer[i] = 0;
                 }
             }
         }
@@ -144,16 +160,16 @@ namespace BossAssist
         {
             if (WorldAssist.ActiveBossesList.Contains(true))
             {
-                for (int i = 0; i < WorldAssist.DodgeTimer.Count; i++)
+                for (int i = 0; i < DodgeTimer.Count; i++)
                 {
                     if (WorldAssist.ActiveBossesList[i])
                     {
-                        WorldAssist.AttackCounter[i]++;
+                        AttackCounter[i]++;
                     }
                 }
-                for (int i = 0; i < WorldAssist.DodgeTimer.Count; i++)
+                for (int i = 0; i < DodgeTimer.Count; i++)
                 {
-                    WorldAssist.DodgeTimer[i] = 0;
+                    DodgeTimer[i] = 0;
                 }
             }
         }

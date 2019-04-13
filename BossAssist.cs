@@ -8,6 +8,8 @@ using Microsoft.Xna.Framework.Graphics;
 using ReLogic.Graphics;
 using Terraria.Graphics;
 
+//TODO: Fix Respawn Timer bug where respawn timer goes into the negatives
+
 namespace BossAssist
 {
     public class BossAssist : Mod
@@ -75,7 +77,7 @@ namespace BossAssist
         {
             MapAssist.DrawFullscreenMap(this, ref mouseText);
         }
-
+        
         public override void ModifyInterfaceLayers(List<GameInterfaceLayer> layers)
         {
             int MouseTextIndex = layers.FindIndex(layer => layer.Name.Equals("Vanilla: Mouse Text"));
@@ -101,14 +103,13 @@ namespace BossAssist
             int InventoryIndex = layers.FindIndex(layer => layer.Name.Equals("Vanilla: Death Text"));
             if (InventoryIndex != -1)
             {
-                layers.Insert(InventoryIndex + 1, new LegacyGameInterfaceLayer("BossAssist: Respawn Timer",
+                layers.Insert(InventoryIndex, new LegacyGameInterfaceLayer("BossAssist: Respawn Timer",
                     delegate
                     {
-                        string timer;
                         if (Main.LocalPlayer.dead && Main.LocalPlayer.difficulty != 2)
                         {
                             if (Main.LocalPlayer.respawnTimer % 60 == 0 && Main.LocalPlayer.respawnTimer / 60 <= 3) Main.PlaySound(25);
-                            timer = (Main.LocalPlayer.respawnTimer / 60 + 1).ToString();
+                            string timer = (Main.LocalPlayer.respawnTimer / 60 + 1).ToString();
                             DynamicSpriteFontExtensionMethods.DrawString(Main.spriteBatch, Main.fontDeathText, timer, new Vector2(Main.screenWidth / 2, Main.screenHeight / 2 - 75), new Color(1f, 0.388f, 0.278f), 0f, default(Vector2), 1, SpriteEffects.None, 0f);
                         }
                         return true;

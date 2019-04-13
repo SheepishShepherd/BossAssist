@@ -12,11 +12,6 @@ using Terraria.ID;
 using Terraria.ModLoader;
 using Terraria.UI;
 
-// Change the Credits to opted mods to a UIList so it can scroll if it gets too long
-// BUG: If UI overlaps with inventory, hovering over the overlap crashes the game
-
-// Boss Log UI has been changed to close the inventory when visible and opens the inventory when clsoing the UI
-
 namespace BossAssist
 {
     // "Open UI" buttons
@@ -131,6 +126,13 @@ namespace BossAssist
 
             Rectangle pageRect = GetInnerDimensions().ToRectangle();
 
+            if (BossLogUI.PageNum == -1)
+            {
+                Vector2 pos = new Vector2(GetInnerDimensions().X + 19, GetInnerDimensions().Y + 15);
+                if (Id == "PageOne") Utils.DrawBorderStringBig(spriteBatch, "Pre-Hardmode", pos, Colors.RarityAmber, 0.6f);
+                else if (Id == "PageTwo") Utils.DrawBorderStringBig(spriteBatch, "Hardmode", pos, Colors.RarityAmber, 0.6f);
+            }
+
             if (Id == "PageOne" && BossLogUI.PageNum >= 0)
             {
                 BossInfo shortcut = BossAssist.instance.setup.SortedBosses[BossLogUI.PageNum];
@@ -177,8 +179,8 @@ namespace BossAssist
                 pos = new Vector2(GetInnerDimensions().X + 15, GetInnerDimensions().Y + 125);
                 Utils.DrawBorderString(spriteBatch, "Corinna - Boss Placeholder Sprite", pos, Color.MediumPurple);
 
-                pos = new Vector2(GetInnerDimensions().X + 5, GetInnerDimensions().Y + 200);
-                Utils.DrawBorderString(spriteBatch, "To add your own bosses to the boss log, just \nfollow the instructions on the homepage.\n\nSuggest adding boss pages, drop additions, \nand collectible additions to other modders. \nThe more this mod expands the better!!", pos, Color.LightCoral);
+                pos = new Vector2(GetInnerDimensions().X + 5, GetInnerDimensions().Y + 270);
+                Utils.DrawBorderString(spriteBatch, "To add your own bosses to the boss log, \nfollow the instructions on the homepage.\nAdvise other modders to do the same. \nThe more this mod expands the better!!", pos, Color.LightCoral);
             }
 
             if (Id == "PageTwo" && BossLogUI.PageNum == -2)
@@ -203,27 +205,10 @@ namespace BossAssist
                 if (optedMods.Count != 0)
                 {
                     Vector2 pos = new Vector2(GetInnerDimensions().X + 5, GetInnerDimensions().Y + 5);
-                    Utils.DrawBorderString(spriteBatch, "Thanks to all the mods who opted in!*", pos, Color.LightSkyBlue);
+                    Utils.DrawBorderString(spriteBatch, "Thanks to all the mods who opted in!*", pos, Color.LightSkyBlue); adjustment += 35;
 
-                    //TODO: Change this drawing to a UIList of UITexts
-                    foreach (string mod in optedMods)
-                    {
-                        adjustment += 35;
-                        Vector2 listPos = new Vector2(GetInnerDimensions().X + 15, GetInnerDimensions().Y + adjustment);
-                        Utils.DrawBorderString(spriteBatch, mod, listPos, Color.White);
-
-                        if (adjustment / 35 == optedMods.Count)
-                        {
-                            adjustment += 35;
-                            listPos = new Vector2(GetInnerDimensions().X + 5, GetInnerDimensions().Y + adjustment);
-                            Utils.DrawBorderString(spriteBatch, "*The list only contains loaded mods", listPos, Color.LightBlue);
-                        }
-                    }
-                }
-                else
-                {
-                    Vector2 pos = new Vector2(GetInnerDimensions().X + 5, GetInnerDimensions().Y + 5);
-                    Utils.DrawBorderString(spriteBatch, "None of your loaded mods have added \npages to the Boss Log. If you want your \nfavorite mods to be included, suggest \nadding their own boss pages to the mod's \ndiscord or forums page!", pos, Color.LightBlue);
+                    pos = new Vector2(GetInnerDimensions().X + 5, GetInnerDimensions().Y + adjustment);
+                    Utils.DrawBorderString(spriteBatch, "*The list only contains loaded mods", pos, Color.LightBlue);
                 }
             }
 
@@ -814,16 +799,12 @@ namespace BossAssist
             {
                 // Needed to remove mousetext from outside sources when using the Boss Log
                 Main.player[Main.myPlayer].mouseInterface = true;
+                Main.mouseText = true;
+
+                // Item icons such as hovering over a bed will not appear
                 Main.LocalPlayer.showItemIcon = false;
                 Main.LocalPlayer.showItemIcon2 = -1;
                 Main.ItemIconCacheUpdate(0);
-                Main.mouseText = false;
-                Item newItem = new Item();
-                newItem.SetDefaults(ItemID.None);
-                Main.HoverItem = newItem;
-                Main.hoverItemName = "";
-                Main.HoveringOverAnNPC = false;
-                Main.LocalPlayer.talkNPC = -1;
             }
         }
     }
@@ -921,7 +902,7 @@ namespace BossAssist
 
         public UIList pageTwoItemList;
         public FixedUIScrollbar pageTwoScroll;
-
+        
         public static int PageNum = 0; // Selected Boss Page
         public static int SubPageNum = 0; // Selected Topic Tab (Loot, Stats, etc.)
         public static bool visible = false;
@@ -971,23 +952,23 @@ namespace BossAssist
 
             prehardmodeList = new UIList();
             prehardmodeList.Left.Pixels = 4;
-            prehardmodeList.Top.Pixels = 4;
-            prehardmodeList.Width.Pixels = PageOne.Width.Pixels - 25;
-            prehardmodeList.Height.Pixels = PageOne.Height.Pixels - 80;
+            prehardmodeList.Top.Pixels = 44;
+            prehardmodeList.Width.Pixels = PageOne.Width.Pixels - 60;
+            prehardmodeList.Height.Pixels = PageOne.Height.Pixels - 136;
             prehardmodeList.PaddingTop = 5;
 
             scrollOne = new FixedUIScrollbar();
             scrollOne.SetView(100f, 1000f);
-            scrollOne.Top.Pixels = 32f;
+            scrollOne.Top.Pixels = 50f;
             scrollOne.Left.Pixels = -18;
-            scrollOne.Height.Set(-6f, 0.75f);
+            scrollOne.Height.Set(-24f, 0.75f);
             scrollOne.HAlign = 1f;
 
             scrollTwo = new FixedUIScrollbar();
             scrollTwo.SetView(100f, 1000f);
-            scrollTwo.Top.Pixels = 32f;
+            scrollTwo.Top.Pixels = 50f;
             scrollTwo.Left.Pixels = -28;
-            scrollTwo.Height.Set(-6f, 0.75f);
+            scrollTwo.Height.Set(-24f, 0.75f);
             scrollTwo.HAlign = 1f;
 
             bossLogPanel.Append(PageOne);
@@ -1045,9 +1026,9 @@ namespace BossAssist
 
             hardmodeList = new UIList();
             hardmodeList.Left.Pixels = 4;
-            hardmodeList.Top.Pixels = 4;
-            hardmodeList.Width.Pixels = PageOne.Width.Pixels - 25;
-            hardmodeList.Height.Pixels = PageOne.Height.Pixels - 80;
+            hardmodeList.Top.Pixels = 44;
+            hardmodeList.Width.Pixels = PageOne.Width.Pixels - 60;
+            hardmodeList.Height.Pixels = PageOne.Height.Pixels - 136;
             hardmodeList.PaddingTop = 5;
             
             recordButton = new SubpageButton("Boss Records");
@@ -1090,10 +1071,7 @@ namespace BossAssist
         public override void Update(GameTime gameTime)
         {
             visible = Main.playerInventory;
-            if (!visible)
-            {
-                RemoveChild(bosslogbutton);
-            }
+            if (!visible) RemoveChild(bosslogbutton);
             else Append(bosslogbutton);
 
             if (BossLogPanel.visible && BookUI.visible)
@@ -1101,48 +1079,23 @@ namespace BossAssist
                 if (Main.LocalPlayer.controlInv)
                 {
                     BossLogPanel.visible = false;
+                    RemoveChild(PageOne);
+                    RemoveChild(PageTwo);
                     BookUI.visible = false;
                     Main.playerInventory = true;
                 }
             }
-            
+
             // We rewrite the position of the button to make sure it updates with the screen res
             bosslogbutton.Left.Pixels = Main.screenWidth - bosslogbutton.Width.Pixels - 190;
             bosslogbutton.Top.Pixels = Main.screenHeight - bosslogbutton.Height.Pixels - 8;
             bossLogPanel.Left.Pixels = (Main.screenWidth / 2) - (bossLogPanel.Width.Pixels / 2);
             bossLogPanel.Top.Pixels = (Main.screenHeight / 2) - (bossLogPanel.Height.Pixels / 2);
 
-            if (PageNum == -1) // Checklist Pages
+            if (PageNum >= 0)
             {
-                PageOne.RemoveAllChildren();
-                PageOne.Append(TOCPage);
-                PageOne.Append(scrollOne);
-                PageOne.Append(prehardmodeList);
-                prehardmodeList.SetScrollbar(scrollOne);
-                PageTwo.RemoveAllChildren();
-                PageTwo.Append(CredPage);
-                PageTwo.Append(NextPage);
-                PageTwo.Append(scrollTwo);
-                PageTwo.Append(hardmodeList);
-                hardmodeList.SetScrollbar(scrollTwo);
-            }
-            else if (PageNum == -2)
-            {
-                PageOne.RemoveAllChildren();
-                PageOne.Append(TOCPage);
-
-                PageTwo.RemoveAllChildren();
-                PageTwo.Append(CredPage);
-                // Setup Credits Page
-            }
-            else
-            {
-                if (PageOne.HasChild(prehardmodeList)) PageOne.RemoveChild(prehardmodeList);
-                if (PageTwo.HasChild(hardmodeList)) PageTwo.RemoveChild(hardmodeList);
-                if (PageOne.HasChild(scrollOne)) PageOne.RemoveChild(scrollOne);
-                if (PageTwo.HasChild(scrollTwo)) PageTwo.RemoveChild(scrollTwo);
                 PageOne.Append(bossIcon);
-                
+
                 Main.instance.LoadNPC(BossAssist.instance.setup.SortedBosses[PageNum].id);
                 Texture2D head;
                 if (BossAssist.instance.setup.SortedBosses[PageNum].id < NPCID.Count)
@@ -1168,13 +1121,14 @@ namespace BossAssist
                 }
                 else head = ModLoader.GetTexture(NPCLoader.GetNPC(BossAssist.instance.setup.SortedBosses[PageNum].id).BossHeadTexture);
                 bossIcon.SetImage(head);
-                
+
                 if (PageNum == BossAssist.instance.setup.SortedBosses.FindIndex(x => x.id == NPCID.Retinazer)) PageOne.Append(spazHead);
                 else PageOne.RemoveChild(spazHead);
 
                 if (PageNum == BossAssist.instance.setup.SortedBosses.FindIndex(x => x.id == NPCID.DD2Betsy)) bossIcon.Left.Pixels = PageOne.Width.Pixels - bossIcon.Width.Pixels - 10;
                 else bossIcon.Left.Pixels = PageOne.Width.Pixels - bossIcon.Width.Pixels - 15;
             }
+            else PageOne.RemoveChild(bossIcon);
 
             if (PageNum == -2) PageTwo.RemoveChild(NextPage);
             else PageTwo.Append(NextPage);
@@ -1186,19 +1140,13 @@ namespace BossAssist
 
         private void OpenBossLog(UIMouseEvent evt, UIElement listeningElement)
         {
-            if (BossLogPanel.visible && BookUI.visible)
-            {
-                BossLogPanel.visible = false;
-                BookUI.visible = false;
-            }
-            else
-            {
-                PageNum = -1;
-                SubPageNum = 0;
-                BossLogPanel.visible = true;
-                BookUI.visible = true;
-                UpdateTableofContents();
-            }
+            PageNum = -1;
+            SubPageNum = 0;
+            BossLogPanel.visible = true;
+            bossLogPanel.Append(PageOne);
+            bossLogPanel.Append(PageTwo);
+            BookUI.visible = true;
+            UpdateTableofContents();
         }
 
         private void OpenNextBoss(UIMouseEvent evt, UIElement listeningElement)
@@ -1219,15 +1167,14 @@ namespace BossAssist
                 // If the final boss page is downed, just redirect to the Table of Contents
                 if (b == BossAssist.instance.setup.SortedBosses.Count - 1) PageNum = -1;
             }
-            if (!BossLogPanel.visible)
+            BossLogPanel.visible = true;
+            bossLogPanel.Append(PageOne);
+            bossLogPanel.Append(PageTwo);
+            BookUI.visible = true;
+            if (PageNum != -1)
             {
-                BossLogPanel.visible = true;
-                BookUI.visible = true;
-                if (PageNum != -1)
-                {
-                    SubPageNum = 1;
-                    OpenSpawn(evt, listeningElement);
-                }
+                SubPageNum = 1;
+                OpenSpawn(evt, listeningElement);
             }
         }
 
@@ -1253,6 +1200,13 @@ namespace BossAssist
 
         private void PageChangerClicked(UIMouseEvent evt, UIElement listeningElement)
         {
+            pageTwoItemList.Clear();
+            prehardmodeList.Clear();
+            hardmodeList.Clear();
+            PageOne.RemoveChild(scrollOne);
+            PageTwo.RemoveChild(scrollTwo);
+            PageTwo.RemoveChild(pageTwoScroll);
+            
             if (listeningElement.Id == "Previous")
             {
                 if (PageNum > -1) PageNum--;
@@ -1278,6 +1232,7 @@ namespace BossAssist
                     else if (SubPageNum == 2) OpenLoot(evt, listeningElement);
                     else if (SubPageNum == 3) OpenCollect(evt, listeningElement);
                 }
+                else UpdateCredits();
             }
             else if (listeningElement.Id == "TableOfContents")
             {
@@ -1290,19 +1245,20 @@ namespace BossAssist
             else if (listeningElement.Id == "Credits")
             {
                 PageNum = -2;
-                // UpdateCredits();
+                UpdateCredits();
             }
         }
 
         private void OpenRecord(UIMouseEvent evt, UIElement listeningElement)
         {
+            ResetPageTwo();
             if (PageNum < 0) return;
             SubPageNum = 0;
-            ResetPageTwo();
         }
 
         private void OpenSpawn(UIMouseEvent evt, UIElement listeningElement)
         {
+            ResetPageTwo();
             if (PageNum < 0) return;
             SubPageNum = 1;
             Mod thorium = ModLoader.GetMod("ThoriumMod");
@@ -1311,7 +1267,6 @@ namespace BossAssist
                 BossInfo spot = BossAssist.instance.setup.SortedBosses.Find(x => x.name == "Plantera");
                 spot.spawnItem = thorium.ItemType("PlantBulb");
             }
-            ResetPageTwo();
             List<Item> ingredients = new List<Item>();
             List<int> requiredTiles = new List<int>();
             List<Recipe> recipes = Main.recipe.ToList();
@@ -1419,9 +1374,9 @@ namespace BossAssist
 
         private void OpenLoot(UIMouseEvent evt, UIElement listeningElement)
         {
+            ResetPageTwo();
             if (PageNum < 0) return;
             SubPageNum = 2;
-            ResetPageTwo();
             int row = 0;
             int col = 0;
             
@@ -1491,9 +1446,9 @@ namespace BossAssist
 
         private void OpenCollect(UIMouseEvent evt, UIElement listeningElement)
         {
+            ResetPageTwo();
             if (PageNum < 0) return;
             SubPageNum = 3;
-            ResetPageTwo();
             int row = 0;
             int col = 0;
 
@@ -1538,27 +1493,13 @@ namespace BossAssist
 
         public void UpdateTableofContents()
         {
+            ResetPageTwo();
             if (PageNum != -1) return;
             int nextCheck = 0;
             bool nextCheckBool = false;
             prehardmodeList.Clear();
             hardmodeList.Clear();
-            TableOfContents Header = new TableOfContents(-1f, "Pre-Hardmode", true, 0.6f, true)
-            {
-                Id = "Header1",
-                PaddingTop = 12,
-                PaddingLeft = 15,
-                TextColor = Colors.RarityAmber
-            };
-            TableOfContents Header2 = new TableOfContents(-1f, "Hardmode", true, 0.6f, true)
-            {
-                Id = "Header2",
-                PaddingTop = 12,
-                PaddingLeft = 15,
-                TextColor = Colors.RarityAmber
-            };
-            prehardmodeList.Add(Header);
-            hardmodeList.Add(Header2);
+            
             List<BossInfo> copiedList = new List<BossInfo>(BossAssist.instance.setup.SortedBosses.Count);
             foreach (BossInfo boss in BossAssist.instance.setup.SortedBosses)
             {
@@ -1626,11 +1567,82 @@ namespace BossAssist
                     }
                 }
             }
+
+            if (prehardmodeList.Count > 14) PageOne.Append(scrollOne);
+            PageOne.Append(prehardmodeList);
+            prehardmodeList.SetScrollbar(scrollOne);
+            if (hardmodeList.Count > 14) PageTwo.Append(scrollTwo);
+            PageTwo.Append(hardmodeList);
+            hardmodeList.SetScrollbar(scrollTwo);
+        }
+
+        private void UpdateCredits()
+        {
+            ResetPageTwo();
+            List<string> optedMods = new List<string>();
+            foreach (BossInfo boss in BossAssist.instance.setup.SortedBosses)
+            {
+                if (boss.source != "Vanilla")
+                {
+                    string sourceDisplayName = ModLoader.GetMod(boss.source).DisplayName;
+                    if (!optedMods.Contains(sourceDisplayName))
+                    {
+                        optedMods.Add(sourceDisplayName);
+                    }
+                }
+            }
+
+            pageTwoItemList.Left.Pixels = 15;
+            pageTwoItemList.Top.Pixels = 75;
+            pageTwoItemList.Width.Pixels = PageTwo.Width.Pixels - 66;
+            pageTwoItemList.Height.Pixels = PageTwo.Height.Pixels - 75 - 80;
+
+            pageTwoScroll.SetView(10f, 1000f);
+            pageTwoScroll.Top.Pixels = 90;
+            pageTwoScroll.Left.Pixels = -24;
+            pageTwoScroll.Height.Set(-60f, 0.75f);
+            pageTwoScroll.HAlign = 1f;
+
+            pageTwoItemList.Clear();
+
+            if (optedMods.Count != 0)
+            {
+                foreach (string mod in optedMods)
+                {
+                    UIText modListed = new UIText("●" + mod)
+                    {
+                        PaddingTop = 8,
+                        PaddingLeft = 5
+                    };
+                    pageTwoItemList.Add(modListed);
+                }
+            }
+            else // No mods are using the Log
+            {
+                pageTwoItemList.Left.Pixels = 0;
+                pageTwoItemList.Top.Pixels = 15;
+                pageTwoItemList.Width.Pixels = PageTwo.Width.Pixels;
+                pageTwoItemList.Height.Pixels = PageTwo.Height.Pixels - 75 - 80;
+                
+                string noMods = "None of your loaded mods have added \npages to the Boss Log. If you want your \nfavorite mods to be included, suggest \nadding their own boss pages to the mod's \ndiscord or forums page!";
+                UIText noModListed = new UIText(noMods)
+                {
+                    TextColor = Color.LightBlue,
+                    PaddingTop = 8,
+                    PaddingLeft = 5
+                };
+                pageTwoItemList.Add(noModListed);
+            }
+            if (optedMods.Count > 11) PageTwo.Append(pageTwoScroll);
+            PageTwo.Append(pageTwoItemList);
+            pageTwoItemList.SetScrollbar(pageTwoScroll);
         }
 
         private void UpdatePage(UIMouseEvent evt, UIElement listeningElement)
         {
             PageNum = Convert.ToInt32(listeningElement.Id);
+            PageOne.RemoveAllChildren();
+            PageOne.Append(TOCPage);
             if (SubPageNum == 0) OpenRecord(evt, listeningElement);
             else if (SubPageNum == 1) OpenSpawn(evt, listeningElement);
             else if (SubPageNum == 2) OpenLoot(evt, listeningElement);
@@ -1641,10 +1653,13 @@ namespace BossAssist
         {
             PageTwo.RemoveAllChildren();
             PageTwo.Append(CredPage);
-            PageTwo.Append(spawnButton);
-            PageTwo.Append(lootButton);
-            PageTwo.Append(collectButton);
-            PageTwo.Append(recordButton);
+            if (PageNum >= 0)
+            {
+                PageTwo.Append(spawnButton);
+                PageTwo.Append(lootButton);
+                PageTwo.Append(collectButton);
+                PageTwo.Append(recordButton);
+            }
         }
     }
 }
