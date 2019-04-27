@@ -8,13 +8,13 @@ using Microsoft.Xna.Framework.Graphics;
 using ReLogic.Graphics;
 using Terraria.Graphics;
 
-//TODO: Fix Respawn Timer bug where respawn timer goes into the negatives
-
 namespace BossAssist
 {
     public class BossAssist : Mod
     {
         internal static BossAssist instance;
+
+        public static ModHotKey ToggleBossLog;
 
         internal UserInterface BossLogInterface;
         internal BossLogUI BossLog;
@@ -34,6 +34,8 @@ namespace BossAssist
         public override void Load()
         {
             instance = this;
+
+            ToggleBossLog = RegisterHotKey("Toggle Boss Log", "L");
 
             MapAssist.FullMapInitialize();
 
@@ -57,6 +59,7 @@ namespace BossAssist
         public override void Unload()
         {
             instance = null;
+            ToggleBossLog = null;
             setup = null;
             BossRadarUI.arrowTexture = null;
         }
@@ -148,6 +151,8 @@ namespace BossAssist
 
                     setup.AddBoss(BossValue, BossID, ModName, BossName, BossDowned, BossSpawn, BossCollect, BossLoot, BossTexture);
                 }
+                // Will be added in later once some fixes are made and features are introduced
+                /*
                 else if (AddType == "AddLoot")
                 {
                     string ModName = args[1].ToString();
@@ -164,6 +169,7 @@ namespace BossAssist
                     // This list is for adding on to existing bosses loot drops
                     setup.AddToCollection(BossID, ModName, BossCollect);
                 }
+                */
                 else
                 {
                     ErrorLogger.Log("BossAssist Call Error: Type not found");
@@ -171,7 +177,7 @@ namespace BossAssist
             }
             catch (Exception e)
             {
-                ErrorLogger.Log("BossChecklist Call Error: " + e.StackTrace + e.Message);
+                ErrorLogger.Log("BossAssist Call Error: " + e.StackTrace + e.Message);
             }
             return "Failure";
         }

@@ -3,7 +3,8 @@ using Terraria.ModLoader;
 using Terraria.ModLoader.IO;
 using Microsoft.Xna.Framework;
 using System.Collections.Generic;
-using Terraria.ID;
+
+// Bug: ItemLists for loot and collections added in with add loot/collect calls do not get added to saved data
 
 namespace BossAssist
 {
@@ -16,7 +17,7 @@ namespace BossAssist
         public List<int> BrinkChecker;
         public List<int> MaxHealth;
         public List<bool> DeathTracker;
-        public List<int> DodgeTimer; // Turn into List
+        public List<int> DodgeTimer;
         public List<int> AttackCounter;
 
         public override void Initialize()
@@ -38,14 +39,26 @@ namespace BossAssist
                 int index = BossTrophies.FindIndex(x => x.modName == boss.source && x.bossName == boss.name);
                 BossTrophies[index].itemList = new List<Item>();
                 BossTrophies[index].checkList = new List<bool>();
+
+                BossTrophies[index].lootList = new List<Item>();
+                BossTrophies[index].lootCheck = new List<bool>();
                 // 3.) Add the items setup in the SortedBosses list (checks dealt with in Load)
-                foreach (int collectible in BossAssist.instance.setup.SortedBosses[index].collection)
+                foreach (int collectible in boss.collection)
                 {
                     Item newItem = new Item();
                     newItem.SetDefaults(collectible);
 
                     BossTrophies[index].itemList.Add(newItem);
                     BossTrophies[index].checkList.Add(false);
+                }
+
+                foreach (int loot in boss.loot)
+                {
+                    Item newItem = new Item();
+                    newItem.SetDefaults(loot);
+
+                    BossTrophies[index].lootList.Add(newItem);
+                    BossTrophies[index].lootCheck.Add(false);
                 }
             }
 
@@ -82,17 +95,15 @@ namespace BossAssist
             // Prepare the collections for the player. Putting unloaded bosses in the back and new/existing ones up front
             List<BossCollection> TempCollectionStorage = tag.Get<List<BossCollection>>("Collection");
             List<BossCollection> TempCollectionStorage2 = tag.Get<List<BossCollection>>("Collection");
+
+            List<BossCollection> AddedCollections = new List<BossCollection>();
             foreach (BossCollection collection in TempCollectionStorage)
             {
                 int index = BossTrophies.FindIndex(x => x.modName == collection.modName && x.bossName == collection.bossName);
                 if (index == -1) BossTrophies.Add(collection);
-                else
-                {
-                    BossTrophies[index] = collection;
-                }
+                else BossTrophies[index] = collection;
             }
-
-            // Refill the Item and Check lists with the same method as above
+            
             foreach (BossCollection collection in TempCollectionStorage2)
             {
                 int index = BossTrophies.FindIndex(x => x.modName == collection.modName && x.bossName == collection.bossName);
@@ -104,10 +115,21 @@ namespace BossAssist
                         BossTrophies[index].itemList.Add(item);
                         BossTrophies[index].checkList.Add(false);
                     }
+                    else BossTrophies[index].checkList[index2] = collection.checkList[index2];
+                }
+
+                foreach (Item item in collection.lootList)
+                {
+                    int index2 = collection.lootList.FindIndex(x => x == item);
+                    if (index2 == -1)
+                    {
+                        BossTrophies[index].lootList.Add(item);
+                        BossTrophies[index].lootCheck.Add(false);
+                    }
                     else
                     {
-                        BossTrophies[index].itemList[index2] = item;
-                        BossTrophies[index].checkList[index2] = collection.checkList[index2];
+                        BossTrophies[index].lootList[index2] = item;
+                        BossTrophies[index].lootCheck[index2] = collection.lootCheck[index2];
                     }
                 }
             }
@@ -173,21 +195,5 @@ namespace BossAssist
                 }
             }
         }
-
-        /* Debugging
-        public bool testButton = true;
-
-        public override void ResetEffects()
-        {
-            if (player.controlSmart && testButton))
-            {
-                testButton = false;
-                Main.NewText("> Start of Debug for " + mod.Name, Color.Goldenrod);
-                Main.NewText(WorldAssist.ActiveBossesList[BossAssist.instance.setup.SortedBosses.FindIndex(x => x.id == NPCID.Retinazer)]);
-                Main.NewText("> End of Debug for " + mod.Name, Color.IndianRed);
-            }
-            if (player.releaseSmart) testButton = true;
-        }
-        */
     }
 }

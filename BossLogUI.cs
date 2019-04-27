@@ -30,7 +30,11 @@ namespace BossAssist
             Vector2 stringAdjust = Main.fontMouseText.MeasureString(buttonType);
             Vector2 pos = new Vector2(innerDimensions.X - (stringAdjust.X / 3), innerDimensions.Y - 24);
             base.DrawSelf(spriteBatch);
-            if (IsMouseHovering) DynamicSpriteFontExtensionMethods.DrawString(spriteBatch, Main.fontMouseText, buttonType, pos, Color.White);
+            if (IsMouseHovering)
+            {
+                BossLogPanel.headNum = -1; // Fixes PageTwo head drawing when clicking on ToC boss and going back to ToC
+                DynamicSpriteFontExtensionMethods.DrawString(spriteBatch, Main.fontMouseText, buttonType, pos, Color.White);
+            }
             if (ContainsPoint(Main.MouseScreen) && !PlayerInput.IgnoreMouseInterface) Main.player[Main.myPlayer].mouseInterface = true;
         }
     }
@@ -42,7 +46,7 @@ namespace BossAssist
         private readonly int context;
         private readonly float scale;
 
-        public LogItemSlot(Item item, string hoverText = "", int context = ItemSlot.Context.GuideItem, float scale = 1f)
+        public LogItemSlot(Item item, string hoverText = "", int context = ItemSlot.Context.TrashItem, float scale = 1f)
         {
             this.context = context;
             this.scale = scale;
@@ -59,20 +63,54 @@ namespace BossAssist
             Main.inventoryScale = scale;
             Rectangle rectangle = GetDimensions().ToRectangle();
             var backup = Main.inventoryBack6Texture;
-            
-            if (Main.expertMode) Main.inventoryBack6Texture = Main.inventoryBack14Texture;
+            var backup2 = Main.inventoryBack7Texture;
+
+            if (Main.expertMode) Main.inventoryBack6Texture = Main.inventoryBack15Texture;
             else Main.inventoryBack6Texture = BossAssist.instance.GetTexture("Resources/ExpertOnly");
-            
-            ItemSlot.Draw(spriteBatch, ref item, context, rectangle.TopLeft());
-            
-            Texture2D checkMark = ModLoader.GetTexture("BossAssist/Resources/Checkbox_Check");
-            if (Main.LocalPlayer.GetModPlayer<PlayerAssist>().BossTrophies[BossLogUI.PageNum].itemList.FindIndex(x => x.type == item.type) != -1)
+
+            BossCollection Collection = Main.LocalPlayer.GetModPlayer<PlayerAssist>().BossTrophies[BossLogUI.PageNum];
+
+            if (Collection.itemList.FindIndex(x => x.type == item.type) != -1)
             {
-                if (Id.Contains("collect") && Main.LocalPlayer.GetModPlayer<PlayerAssist>().BossTrophies[BossLogUI.PageNum].checkList[Main.LocalPlayer.GetModPlayer<PlayerAssist>().BossTrophies[BossLogUI.PageNum].itemList.FindIndex(x => x.type == item.type)])
-                    spriteBatch.Draw(checkMark, new Rectangle(rectangle.X + rectangle.Width / 2, rectangle.Y + rectangle.Height / 2, checkMark.Width, checkMark.Height), new Color(255, 255, 255));
+                if (Id.Contains("collect") && Collection.checkList[Collection.itemList.FindIndex(x => x.type == item.type)])
+                {
+                    Main.inventoryBack7Texture = Main.inventoryBack3Texture;
+                }
             }
 
+            if (Collection.lootList.FindIndex(x => x.type == item.type) != -1)
+            {
+                if (Id.Contains("loot_") && Collection.lootCheck[Collection.lootList.FindIndex(x => x.type == item.type)])
+                {
+                    Main.inventoryBack7Texture = Main.inventoryBack3Texture;
+                    Main.inventoryBack6Texture = BossAssist.instance.GetTexture("Resources/ExpertCollected");
+                }
+            }
+
+            ItemSlot.Draw(spriteBatch, ref item, context, rectangle.TopLeft());
+
             Main.inventoryBack6Texture = backup;
+            Main.inventoryBack7Texture = backup2;
+
+            Texture2D checkMark = ModLoader.GetTexture("BossAssist/Resources/Checkbox_Check");
+            if (Collection.itemList.FindIndex(x => x.type == item.type) != -1)
+            {
+                if (Id.Contains("collect") && Collection.checkList[Collection.itemList.FindIndex(x => x.type == item.type)])
+                {
+                    Rectangle rect = new Rectangle(rectangle.X + rectangle.Width / 2, rectangle.Y + rectangle.Height / 2, checkMark.Width, checkMark.Height);
+                    spriteBatch.Draw(checkMark, rect, new Color(255, 255, 255));
+                }
+            }
+
+            if (Main.LocalPlayer.GetModPlayer<PlayerAssist>().BossTrophies[BossLogUI.PageNum].lootList.FindIndex(x => x.type == item.type) != -1)
+            {
+                if (Id.Contains("loot_") && Collection.lootCheck[Collection.lootList.FindIndex(x => x.type == item.type)])
+                {
+                    Rectangle rect = new Rectangle(rectangle.X + rectangle.Width / 2, rectangle.Y + rectangle.Height / 2, checkMark.Width, checkMark.Height);
+                    spriteBatch.Draw(checkMark, rect, new Color(255, 255, 255));
+                }
+            }
+
             if (IsMouseHovering)
             {
                 if (hoverText != "By Hand")
@@ -118,11 +156,15 @@ namespace BossAssist
     {
         public static bool visible = false;
         public static int timerTrophy = 480;
-        
+        public static int headNum = -1;
+
         public override void Draw(SpriteBatch spriteBatch)
         {
             if (!visible) return;
             base.Draw(spriteBatch);
+
+            if (timerTrophy > 0) timerTrophy--;
+            else timerTrophy = 480;
 
             Rectangle pageRect = GetInnerDimensions().ToRectangle();
 
@@ -131,6 +173,19 @@ namespace BossAssist
                 Vector2 pos = new Vector2(GetInnerDimensions().X + 19, GetInnerDimensions().Y + 15);
                 if (Id == "PageOne") Utils.DrawBorderStringBig(spriteBatch, "Pre-Hardmode", pos, Colors.RarityAmber, 0.6f);
                 else if (Id == "PageTwo") Utils.DrawBorderStringBig(spriteBatch, "Hardmode", pos, Colors.RarityAmber, 0.6f);
+
+                if (!IsMouseHovering) headNum = -1;
+
+                if (headNum != -1)
+                {
+                    Texture2D head = BossLogUI.GetBossHead(headNum);
+                    spriteBatch.Draw(head, new Rectangle(Main.mouseX + 15, Main.mouseY + 15, head.Width, head.Height), new Color(255, 255, 255));
+                    if (headNum == BossAssist.instance.setup.SortedBosses.FindIndex(x => x.id == NPCID.Retinazer))
+                    {
+                        Rectangle rect = new Rectangle(Main.mouseX + head.Width + 15, Main.mouseY + 15, head.Width, head.Height);
+                        spriteBatch.Draw(ModLoader.GetTexture("Terraria/NPC_Head_Boss_16"), rect, new Color(255, 255, 255));
+                    }
+                }
             }
 
             if (Id == "PageOne" && BossLogUI.PageNum >= 0)
@@ -168,17 +223,20 @@ namespace BossAssist
                 Utils.DrawBorderString(spriteBatch, "Special thanks to:", pos, Color.IndianRed);
 
                 pos = new Vector2(GetInnerDimensions().X + 15, GetInnerDimensions().Y + 35);
-                Utils.DrawBorderString(spriteBatch, "Orian34 - Beta Testing", pos, new Color(49, 210, 162));
-
-                pos = new Vector2(GetInnerDimensions().X + 15, GetInnerDimensions().Y + 65);
                 Utils.DrawBorderString(spriteBatch, "direwolf420 - Boss Radar Code", pos, Color.Goldenrod);
 
+                pos = new Vector2(GetInnerDimensions().X + 15, GetInnerDimensions().Y + 65);
+                Utils.DrawBorderString(spriteBatch, "Orian34 - Beta Testing", pos, new Color(49, 210, 162));
+
                 pos = new Vector2(GetInnerDimensions().X + 15, GetInnerDimensions().Y + 95);
-                Utils.DrawBorderString(spriteBatch, "RiverOaken - Boss Log UI Sprite", pos, Color.LightPink);
+                Utils.DrawBorderString(spriteBatch, "Panini - Multiplayer/Server Testing", pos, Color.LightPink);
 
                 pos = new Vector2(GetInnerDimensions().X + 15, GetInnerDimensions().Y + 125);
-                Utils.DrawBorderString(spriteBatch, "Corinna - Boss Placeholder Sprite", pos, Color.MediumPurple);
+                Utils.DrawBorderString(spriteBatch, "RiverOaken - Boss Log UI Sprite", pos, Color.YellowGreen);
 
+                pos = new Vector2(GetInnerDimensions().X + 15, GetInnerDimensions().Y + 155);
+                Utils.DrawBorderString(spriteBatch, "Corinna - Boss Placeholder Sprite", pos, Color.MediumPurple);
+                
                 pos = new Vector2(GetInnerDimensions().X + 5, GetInnerDimensions().Y + 270);
                 Utils.DrawBorderString(spriteBatch, "To add your own bosses to the boss log, \nfollow the instructions on the homepage.\nAdvise other modders to do the same. \nThe more this mod expands the better!!", pos, Color.LightCoral);
             }
@@ -222,109 +280,237 @@ namespace BossAssist
                 string recordNumbers = "";
                 int achX = 0;
                 int achY = 0;
-                int achX2 = 0;
-                int achY2 = 0;
 
-                for (int i = 0; i < 4; i++)
+                for (int i = 0; i < 4; i++) // 4 Records total
                 {
                     if (i == 0)
                     {
                         recordType = "Kill Death Ratio";
-                        achX = 4;
-                        achY = 10;
-                        achX2 = 4;
-                        achY2 = 8;
-                        
+
                         int killTimes = Main.LocalPlayer.GetModPlayer<PlayerAssist>().AllBossRecords[BossLogUI.PageNum].stat.kills;
                         int deathTimes = Main.LocalPlayer.GetModPlayer<PlayerAssist>().AllBossRecords[BossLogUI.PageNum].stat.deaths;
+
+                        if (killTimes >= deathTimes)
+                        {
+                            achX = 4;
+                            achY = 10;
+                        }
+                        else
+                        {
+                            achX = 4;
+                            achY = 8;
+                        }
+                        
                         if (killTimes == 0 && deathTimes == 0) recordNumbers = "Unchallenged!";
                         else recordNumbers = killTimes + " kills / " + deathTimes + " deaths";
                     }
                     else if (i == 1)
                     {
                         recordType = "Quickest Victory";
-                        achX = 4;
-                        achY = 9;
-                        achX2 = 7;
-                        achY2 = 5;
-
                         string finalResult = "";
-                        if (Main.LocalPlayer.GetModPlayer<PlayerAssist>().AllBossRecords[BossLogUI.PageNum].stat.fightTime != 0)
+
+                        int BestRecord = Main.LocalPlayer.GetModPlayer<PlayerAssist>().AllBossRecords[BossLogUI.PageNum].stat.fightTime;
+                        int WorstRecord = Main.LocalPlayer.GetModPlayer<PlayerAssist>().AllBossRecords[BossLogUI.PageNum].stat.fightTime2;
+                        int LastRecord = Main.LocalPlayer.GetModPlayer<PlayerAssist>().AllBossRecords[BossLogUI.PageNum].stat.fightTimeL;
+
+                        if (!BossLogUI.AltRecords)
                         {
-                            double recordOrg = (double)Main.LocalPlayer.GetModPlayer<PlayerAssist>().AllBossRecords[BossLogUI.PageNum].stat.fightTime / 60;
-                            int recordMin = (int)recordOrg / 60;
-                            int recordSec = (int)recordOrg % 60;
+                            achX = 4;
+                            achY = 9;
 
-                            double record2 = (double)Main.LocalPlayer.GetModPlayer<PlayerAssist>().AllBossRecords[BossLogUI.PageNum].stat.fightTime2 / 60;
-                            int recordMin2 = (int)recordOrg / 60;
-                            int recordSec2 = (int)recordOrg % 60;
-
-                            string rec1 = recordOrg.ToString("0.##");
-                            string recSec1 = recordSec.ToString("0.##");
-                            string rec2 = record2.ToString("0.##");
-                            string recSec2 = recordSec2.ToString("0.##");
-
-                            if (rec1.Length > 2 && rec1.Substring(rec1.Length - 2).Contains(".")) rec1 += "0";
-                            if (recSec1.Length > 2 && recSec1.Substring(recSec1.Length - 2).Contains(".")) recSec1 += "0";
-                            if (rec2.Length > 2 && rec2.Substring(rec2.Length - 2).Contains(".")) rec2 += "0";
-                            if (recSec2.Length > 2 && recSec2.Substring(recSec2.Length - 2).Contains(".")) recSec2 += "0";
-
-                            if (recordMin > 0) finalResult += recordMin + "m " + recSec1 + "s";
-                            else finalResult += rec1 + "s";
-
-                            if (Main.LocalPlayer.GetModPlayer<PlayerAssist>().AllBossRecords[BossLogUI.PageNum].stat.fightTime2 != 0)
+                            if (LastRecord == BestRecord && LastRecord != -1)
                             {
-                                if (recordMin2 > 0) finalResult += " / " + recordMin2 + "m " + recSec2 + "s";
-                                else finalResult += " / " + rec2 + "s";
+                                Texture2D text = ModLoader.GetTexture("Terraria/UI/UI_quickicon1");
+                                Rectangle exclam = new Rectangle((int)GetInnerDimensions().X + 232, (int)GetInnerDimensions().Y + 180, text.Width, text.Height);
+                                spriteBatch.Draw(text, exclam, new Color(255, 255, 255));
                             }
 
-                            recordNumbers = finalResult;
+                            if (BestRecord != 0)
+                            {
+                                double recordOrg = (double)BestRecord / 60;
+                                int recordMin = (int)recordOrg / 60;
+                                int recordSec = (int)recordOrg % 60;
+
+                                double record2 = (double)LastRecord / 60;
+                                int recordMin2 = (int)record2 / 60;
+                                int recordSec2 = (int)record2 % 60;
+
+                                string rec1 = recordOrg.ToString("0.##");
+                                string recSec1 = recordSec.ToString("0.##");
+                                string rec2 = record2.ToString("0.##");
+                                string recSec2 = recordSec2.ToString("0.##");
+
+                                if (rec1.Length > 2 && rec1.Substring(rec1.Length - 2).Contains(".")) rec1 += "0";
+                                if (recSec1.Length > 2 && recSec1.Substring(recSec1.Length - 2).Contains(".")) recSec1 += "0";
+                                if (rec2.Length > 2 && rec2.Substring(rec2.Length - 2).Contains(".")) rec2 += "0";
+                                if (recSec2.Length > 2 && recSec2.Substring(recSec2.Length - 2).Contains(".")) recSec2 += "0";
+
+                                if (recordMin > 0) finalResult += recordMin + "m " + recSec1 + "s";
+                                else finalResult += rec1 + "s";
+
+                                if (LastRecord > BestRecord)
+                                {
+                                    if (recordMin2 > 0) finalResult += " [" + recordMin2 + "m " + recSec2 + "s]";
+                                    else finalResult += " [" + rec2 + "s]";
+                                }
+
+                                recordNumbers = finalResult;
+                            }
+                            else recordNumbers = "No record!";
                         }
-                        else recordNumbers = "No record!";
+                        else
+                        {
+                            achX = 7;
+                            achY = 5;
+
+                            if (LastRecord == WorstRecord && LastRecord != -1)
+                            {
+                                Texture2D text = ModLoader.GetTexture("Terraria/UI/UI_quickicon1");
+                                Rectangle exclam = new Rectangle((int)GetInnerDimensions().X + 232, (int)GetInnerDimensions().Y + 180, text.Width, text.Height);
+                                spriteBatch.Draw(text, exclam, new Color(255, 255, 255));
+                            }
+
+                            if (WorstRecord != 0)
+                            {
+                                double recordOrg = (double)WorstRecord / 60;
+                                int recordMin = (int)recordOrg / 60;
+                                int recordSec = (int)recordOrg % 60;
+
+                                double record2 = (double)LastRecord / 60;
+                                int recordMin2 = (int)record2 / 60;
+                                int recordSec2 = (int)record2 % 60;
+
+                                string rec1 = recordOrg.ToString("0.##");
+                                string recSec1 = recordSec.ToString("0.##");
+                                string rec2 = record2.ToString("0.##");
+                                string recSec2 = recordSec2.ToString("0.##");
+
+                                if (rec1.Length > 2 && rec1.Substring(rec1.Length - 2).Contains(".")) rec1 += "0";
+                                if (recSec1.Length > 2 && recSec1.Substring(recSec1.Length - 2).Contains(".")) recSec1 += "0";
+                                if (rec2.Length > 2 && rec2.Substring(rec2.Length - 2).Contains(".")) rec2 += "0";
+                                if (recSec2.Length > 2 && recSec2.Substring(recSec2.Length - 2).Contains(".")) recSec2 += "0";
+
+                                if (recordMin > 0) finalResult += recordMin + "m " + recSec1 + "s";
+                                else finalResult += rec1 + "s";
+                                
+                                if (LastRecord != -1 && LastRecord != WorstRecord)
+                                {
+                                    if (recordMin2 > 0) finalResult += " [" + recordMin2 + "m " + recSec2 + "s]";
+                                    else finalResult += " [" + rec2 + "s]";
+                                }
+
+                                recordNumbers = finalResult;
+                            }
+                            else recordNumbers = "No record!";
+                        }
                     }
                     else if (i == 2)
                     {
                         recordType = "Vitality";
-                        achX = 3;
-                        achY = 0;
-                        achX2 = 6;
-                        achY2 = 7;
 
-                        string finalResult = "";
-                        if (Main.LocalPlayer.GetModPlayer<PlayerAssist>().AllBossRecords[BossLogUI.PageNum].stat.brink != 0)
+                        int BestRecord = Main.LocalPlayer.GetModPlayer<PlayerAssist>().AllBossRecords[BossLogUI.PageNum].stat.brink2;
+                        int BestPercent = Main.LocalPlayer.GetModPlayer<PlayerAssist>().AllBossRecords[BossLogUI.PageNum].stat.brinkPercent2;
+                        int WorstRecord = Main.LocalPlayer.GetModPlayer<PlayerAssist>().AllBossRecords[BossLogUI.PageNum].stat.brink;
+                        int WorstPercent = Main.LocalPlayer.GetModPlayer<PlayerAssist>().AllBossRecords[BossLogUI.PageNum].stat.brinkPercent;
+                        int LastRecord = Main.LocalPlayer.GetModPlayer<PlayerAssist>().AllBossRecords[BossLogUI.PageNum].stat.brinkL;
+                        int LastPercent = Main.LocalPlayer.GetModPlayer<PlayerAssist>().AllBossRecords[BossLogUI.PageNum].stat.brinkPercentL;
+
+                        if (!BossLogUI.AltRecords)
                         {
-                            finalResult += Main.LocalPlayer.GetModPlayer<PlayerAssist>().AllBossRecords[BossLogUI.PageNum].stat.brink +
-                                   " (" + Main.LocalPlayer.GetModPlayer<PlayerAssist>().AllBossRecords[BossLogUI.PageNum].stat.brinkPercent + "%)";
-                            if (Main.LocalPlayer.GetModPlayer<PlayerAssist>().AllBossRecords[BossLogUI.PageNum].stat.brink2 != 0)
+                            achX = 3;
+                            achY = 0;
+                            if (LastRecord == BestRecord && LastRecord != -1)
                             {
-                                finalResult += " / " + Main.LocalPlayer.GetModPlayer<PlayerAssist>().AllBossRecords[BossLogUI.PageNum].stat.brink2 +
-                                   " (" + Main.LocalPlayer.GetModPlayer<PlayerAssist>().AllBossRecords[BossLogUI.PageNum].stat.brinkPercent2 + "%)";
+                                Texture2D text = ModLoader.GetTexture("Terraria/UI/UI_quickicon1");
+                                Rectangle exclam = new Rectangle((int)GetInnerDimensions().X + 182, (int)GetInnerDimensions().Y + 255, text.Width, text.Height);
+                                spriteBatch.Draw(text, exclam, new Color(255, 255, 255));
                             }
-                            recordNumbers = finalResult;
+
+                            string finalResult = "";
+                            if (BestRecord != 0)
+                            {
+                                finalResult += BestRecord + " (" + BestPercent + "%)";
+                                if (LastRecord != BestRecord && LastRecord != -1)
+                                {
+                                    finalResult += " [" + LastRecord + " (" + LastPercent + "%)]";
+                                }
+                                recordNumbers = finalResult;
+                            }
+                            else recordNumbers = "No record!";
                         }
-                        else recordNumbers = "No record!";
+                        else
+                        {
+                            achX = 6;
+                            achY = 7;
+
+                            if (LastRecord == WorstRecord && LastRecord != -1)
+                            {
+                                Texture2D text = ModLoader.GetTexture("Terraria/UI/UI_quickicon1");
+                                Rectangle exclam = new Rectangle((int)GetInnerDimensions().X + 182, (int)GetInnerDimensions().Y + 255, text.Width, text.Height);
+                                spriteBatch.Draw(text, exclam, new Color(255, 255, 255));
+                            }
+
+                            string finalResult = "";
+                            if (WorstRecord != 0)
+                            {
+                                finalResult += WorstRecord + " (" + WorstPercent + "%)";
+                                if (LastRecord != WorstRecord && LastRecord != -1)
+                                {
+                                    finalResult += " [" + LastRecord + " (" + LastPercent + "%)]";
+                                }
+                                recordNumbers = finalResult;
+                            }
+                            else recordNumbers = "No record!";
+                        }
                     }
                     else if (i == 3)
                     {
-                        recordType = "Evasiveness (WIP)";
-                        achX = 0;
-                        achY = 7;
-                        achX2 = 4;
-                        achY2 = 2;
-                        
+                        recordType = "Artful Dodging";
+
                         int timer = Main.LocalPlayer.GetModPlayer<PlayerAssist>().AllBossRecords[BossLogUI.PageNum].stat.dodgeTime;
                         int low = Main.LocalPlayer.GetModPlayer<PlayerAssist>().AllBossRecords[BossLogUI.PageNum].stat.totalDodges;
                         int high = Main.LocalPlayer.GetModPlayer<PlayerAssist>().AllBossRecords[BossLogUI.PageNum].stat.totalDodges2;
-                        if (timer == 0 && low == 0 && high == 0) recordNumbers = "No record!";
-                        else recordNumbers = timer + " / " + low + " / " + high;
+                        int last = Main.LocalPlayer.GetModPlayer<PlayerAssist>().AllBossRecords[BossLogUI.PageNum].stat.totalDodgesL;
+
+                        double timer2 = (double)Main.LocalPlayer.GetModPlayer<PlayerAssist>().AllBossRecords[BossLogUI.PageNum].stat.dodgeTime / 60;
+                        string timerOutput = timer2.ToString("0.##");
+
+                        if (!BossLogUI.AltRecords)
+                        {
+                            achX = 0;
+                            achY = 7;
+
+                            if (last == low && last != -1)
+                            {
+                                Texture2D text = ModLoader.GetTexture("Terraria/UI/UI_quickicon1");
+                                Rectangle exclam = new Rectangle((int)GetInnerDimensions().X + 225, (int)GetInnerDimensions().Y + 332, text.Width, text.Height);
+                                spriteBatch.Draw(text, exclam, new Color(255, 255, 255));
+                            }
+
+                            if (timer == 0 && low == 0 && high == 0) recordNumbers = "No record!";
+                            else if (low != last && last != -1) recordNumbers = low + " (" + timerOutput + "s)" + " [" + last + "]";
+                            else recordNumbers = low + " (" + timerOutput + "s)";
+                        }
+                        else
+                        {
+                            achX = 4;
+                            achY = 2;
+
+                            if (last == high && last != -1)
+                            {
+                                Texture2D text = ModLoader.GetTexture("Terraria/UI/UI_quickicon1");
+                                Rectangle exclam = new Rectangle((int)GetInnerDimensions().X + 225, (int)GetInnerDimensions().Y + 332, text.Width, text.Height);
+                                spriteBatch.Draw(text, exclam, new Color(255, 255, 255));
+                            }
+
+                            if (high == 0) recordNumbers = "No record!";
+                            else if (high != last && last != -1) recordNumbers = high + " (" + timerOutput + "s)" + " [" + last + "]";
+                            else recordNumbers = high + " (" + timerOutput + "s)";
+                        }
                     }
 
                     Rectangle posRect = new Rectangle(pageRect.X, pageRect.Y + 100 + (75 * i), 64, 64);
                     Rectangle cutRect = new Rectangle(66 * achX, 66 * achY, 64, 64);
-                    spriteBatch.Draw(achievements, posRect, cutRect, new Color(255, 255, 255));
-
-                    posRect = new Rectangle((int)pageRect.TopRight().X - 100, pageRect.Y + 100 + (75 * i), 64, 64);
-                    cutRect = new Rectangle(66 * achX2, 66 * achY2, 64, 64);
                     spriteBatch.Draw(achievements, posRect, cutRect, new Color(255, 255, 255));
                     
                     Vector2 stringAdjust = Main.fontMouseText.MeasureString(recordType);
@@ -388,31 +574,91 @@ namespace BossAssist
                 }
                 
                 spriteBatch.Draw(template, new Rectangle(pageRect.X + (pageRect.Width / 2) - (template.Width / 2) - 20, pageRect.Y + 84, template.Width, template.Height), new Color(255, 255, 255));
-                
-                if (BossPage.id != NPCID.Retinazer) // (We have a special case for the Twins)
-                {
-                    // Draw Mask
-                    if (Collections.itemList.FindIndex(x => x.Name.Contains("Mask") && x.vanity) != -1)
-                    {
-                        if (Collections.checkList[Collections.itemList.FindIndex(x => x.Name.Contains("Mask") && x.vanity)])
-                        {
-                            Texture2D mask;
-                            if (BossPage.collection[0] < ItemID.Count)
-                            {
-                                Item newItem = new Item();
-                                newItem.SetDefaults(BossPage.collection[1]);
-                                mask = ModLoader.GetTexture("Terraria/Armor_Head_" + newItem.headSlot);
-                            }
-                            else mask = ModLoader.GetTexture(ItemLoader.GetItem(BossPage.collection[0]).Texture + "_Head");
 
-                            int frameCut = mask.Height / 24;
-                            Rectangle posRect = new Rectangle(pageRect.X + (pageRect.Width / 2) - (mask.Width / 2) - 8, pageRect.Y + (pageRect.Height / 2) - (frameCut / 2) - 86, mask.Width, frameCut);
-                            Rectangle cutRect = new Rectangle(0, 0, mask.Width, frameCut);
-                            spriteBatch.Draw(mask, posRect, cutRect, new Color(255, 255, 255));
+                // Draw Mask
+                if (Collections.itemList.FindIndex(x => x.Name.Contains("Mask") && x.vanity) != -1)
+                {
+                    if (Collections.checkList[Collections.itemList.FindIndex(x => x.Name.Contains("Mask") && x.vanity)])
+                    {
+                        Texture2D mask;
+                        if (BossPage.collection[0] < ItemID.Count)
+                        {
+                            Item newItem = new Item();
+                            if (BossPage.id == NPCID.Retinazer) newItem.SetDefaults(ItemID.TwinMask);
+                            else newItem.SetDefaults(BossPage.collection[1]);
+                            mask = ModLoader.GetTexture("Terraria/Armor_Head_" + newItem.headSlot);
+                        }
+                        else mask = ModLoader.GetTexture(ItemLoader.GetItem(BossPage.collection[0]).Texture + "_Head");
+
+                        int frameCut = mask.Height / 24;
+                        Rectangle posRect = new Rectangle(pageRect.X + (pageRect.Width / 2) - (mask.Width / 2) - 8, pageRect.Y + (pageRect.Height / 2) - (frameCut / 2) - 86, mask.Width, frameCut);
+                        Rectangle cutRect = new Rectangle(0, 0, mask.Width, frameCut);
+                        spriteBatch.Draw(mask, posRect, cutRect, new Color(255, 255, 255));
+                    }
+                }
+
+                // Draw Trophy
+                if (BossPage.id == NPCID.Retinazer)
+                {
+                    // Draw both Twins trophies
+                    if (Collections.itemList.FindIndex(x => x.type == ItemID.RetinazerTrophy) != -1 && Collections.itemList.FindIndex(x => x.type == ItemID.SpazmatismTrophy) != -1)
+                    {
+                        if (Collections.checkList[Collections.itemList.FindIndex(x => x.type == ItemID.RetinazerTrophy)] || Collections.checkList[Collections.itemList.FindIndex(x => x.type == ItemID.SpazmatismTrophy)])
+                        {
+                            Main.instance.LoadTiles(240);
+                            Texture2D trophy = Main.tileTexture[240];
+                            int offsetX = 0;
+                            int offsetY = 0;
+
+                            bool drawTrophy = true;
+
+                            if (timerTrophy >= 240 && Collections.checkList[Collections.itemList.FindIndex(x => x.type == ItemID.RetinazerTrophy)])
+                            {
+                                offsetX = 24;
+                                offsetY = 0;
+                                drawTrophy = true;
+                            }
+                            else if (timerTrophy >= 240 && !Collections.checkList[Collections.itemList.FindIndex(x => x.type == ItemID.RetinazerTrophy)])
+                            {
+                                drawTrophy = false;
+                            }
+
+                            if (timerTrophy < 240 && Collections.checkList[Collections.itemList.FindIndex(x => x.type == ItemID.SpazmatismTrophy)])
+                            {
+                                offsetX = 27;
+                                offsetY = 0;
+                                drawTrophy = true;
+                            }
+                            else if (timerTrophy < 240 && !Collections.checkList[Collections.itemList.FindIndex(x => x.type == ItemID.SpazmatismTrophy)])
+                            {
+                                drawTrophy = false;
+                            }
+
+                            int backupX = offsetX;
+                            int backupY = offsetY;
+
+                            if (drawTrophy)
+                            {
+                                for (int i = 0; i < 9; i++)
+                                {
+                                    Rectangle posRect = new Rectangle(pageRect.X + 98 + (offsetX * 16) - (backupX * 16), pageRect.Y + 126 + (offsetY * 16) - (backupY * 16), 18, 18);
+                                    Rectangle cutRect = new Rectangle(offsetX * 18, offsetY * 18, 18, 18);
+
+                                    spriteBatch.Draw(trophy, posRect, cutRect, new Color(255, 255, 255));
+
+                                    offsetX++;
+                                    if (i == 2 || i == 5)
+                                    {
+                                        offsetX = backupX;
+                                        offsetY++;
+                                    }
+                                }
+                            }
                         }
                     }
-
-                    // Draw Trophy
+                }
+                else
+                {
                     if (Collections.itemList.FindIndex(x => x.Name.Contains("Trophy") && x.createTile > 0) != -1)
                     {
                         if (Collections.checkList[Collections.itemList.FindIndex(x => x.Name.Contains("Trophy") && x.createTile > 0)])
@@ -543,198 +789,68 @@ namespace BossAssist
                             }
                         }
                     }
-
-                    // Draw Music Box
-                    if (Collections.itemList.FindIndex(x => x.Name.Contains("Music Box") && x.createTile > 0) != -1)
-                    {
-                        if (Collections.checkList[Collections.itemList.FindIndex(x => x.Name.Contains("Music Box") && x.createTile > 0)])
-                        {
-                            int offsetX = 0;
-                            int offsetY = 0;
-                            Main.instance.LoadTiles(139);
-                            Texture2D musicBox = Main.tileTexture[139];
-
-                            if (BossPage.collection[2] < ItemID.Count)
-                            {
-                                if (BossPage.collection[2] == ItemID.MusicBoxBoss1)
-                                {
-                                    if (Main.music[MusicID.Boss1].IsPlaying) offsetX = 2;
-                                    offsetY = 10;
-                                }
-                                else if (BossPage.collection.Any(x => x == ItemID.MusicBoxBoss2))
-                                {
-                                    if (Main.music[MusicID.Boss2].IsPlaying) offsetX = 2;
-                                    offsetY = 20;
-                                }
-                                else if (BossPage.collection[2] == ItemID.MusicBoxBoss3)
-                                {
-                                    if (Main.music[MusicID.Boss3].IsPlaying) offsetX = 2;
-                                    offsetY = 24;
-                                }
-                                else if (BossPage.collection[2] == ItemID.MusicBoxBoss4)
-                                {
-                                    if (Main.music[MusicID.Boss4].IsPlaying) offsetX = 2;
-                                    offsetY = 32;
-                                }
-                                else if (BossPage.collection[2] == ItemID.MusicBoxBoss5)
-                                {
-                                    if (Main.music[MusicID.Boss5].IsPlaying) offsetX = 2;
-                                    offsetY = 48;
-                                }
-                                else if (BossPage.collection[2] == ItemID.MusicBoxPlantera)
-                                {
-                                    if (Main.music[MusicID.Plantera].IsPlaying) offsetX = 2;
-                                    offsetY = 46;
-                                }
-                                else if (BossPage.collection[2] == ItemID.MusicBoxDD2)
-                                {
-                                    if (Main.music[MusicID.OldOnesArmy].IsPlaying) offsetX = 2;
-                                    offsetY = 78;
-                                }
-                                else if (BossPage.collection[2] == ItemID.MusicBoxLunarBoss)
-                                {
-                                    if (Main.music[MusicID.LunarBoss].IsPlaying) offsetX = 2;
-                                    offsetY = 64;
-                                }
-
-                                int backupX = offsetX;
-                                int backupY = offsetY;
-
-                                for (int i = 0; i < 4; i++)
-                                {
-                                    Rectangle posRect = new Rectangle(pageRect.X + 210 + (offsetX * 16) - (backupX * 16), pageRect.Y + 158 + (offsetY * 16) - (backupY * 16), 16, 16);
-                                    Rectangle cutRect = new Rectangle(offsetX * 18, (offsetY * 18) - 2, 16, 16);
-
-                                    spriteBatch.Draw(musicBox, posRect, cutRect, new Color(255, 255, 255));
-
-                                    offsetX++;
-                                    if (i == 1)
-                                    {
-                                        offsetX = backupX;
-                                        offsetY++;
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                Main.instance.LoadTiles(ItemLoader.GetItem(BossPage.collection[2]).item.createTile);
-                                musicBox = Main.tileTexture[ItemLoader.GetItem(BossPage.collection[2]).item.createTile];
-
-                                for (int i = 0; i < 4; i++)
-                                {
-                                    Rectangle posRect = new Rectangle(pageRect.X + 210 + (offsetX * 16), pageRect.Y + 158 + (offsetY * 16), 16, 16);
-                                    Rectangle cutRect = new Rectangle(offsetX * 18, (offsetY * 18) - 2, 16, 16);
-
-                                    spriteBatch.Draw(musicBox, posRect, cutRect, new Color(255, 255, 255));
-
-                                    offsetX++;
-                                    if (i == 1)
-                                    {
-                                        offsetX = 0;
-                                        offsetY++;
-                                    }
-                                }
-                            }
-                        }
-                    }
                 }
-                else // if the Boss Page is currently on the Twins
+
+                // Draw Music Box
+                if (Collections.itemList.FindIndex(x => x.Name.Contains("Music Box") && x.createTile > 0) != -1)
                 {
-                    // Draw both Twins trophies
-                    if (Collections.itemList.FindIndex(x => x.type == ItemID.RetinazerTrophy) != -1 && Collections.itemList.FindIndex(x => x.type == ItemID.SpazmatismTrophy) != -1)
+                    if (Collections.checkList[Collections.itemList.FindIndex(x => x.Name.Contains("Music Box") && x.createTile > 0)])
                     {
-                        if (Collections.checkList[Collections.itemList.FindIndex(x => x.type == ItemID.RetinazerTrophy)] || Collections.checkList[Collections.itemList.FindIndex(x => x.type == ItemID.SpazmatismTrophy)])
+                        int offsetX = 0;
+                        int offsetY = 0;
+                        Main.instance.LoadTiles(139);
+                        Texture2D musicBox = Main.tileTexture[139];
+
+                        if (BossPage.collection[2] < ItemID.Count)
                         {
-                            if (timerTrophy != 0) timerTrophy--;
-                            else timerTrophy = 480;
-
-                            Main.instance.LoadTiles(240);
-                            Texture2D trophy = Main.tileTexture[240];
-                            int offsetX = 0;
-                            int offsetY = 0;
-
-                            bool drawTrophy = true;
-
-                            if (timerTrophy >= 240 && Collections.checkList[Collections.itemList.FindIndex(x => x.type == ItemID.RetinazerTrophy)])
+                            if (BossPage.collection[2] == ItemID.MusicBoxBoss1)
                             {
-                                offsetX = 24;
-                                offsetY = 0;
-                                drawTrophy = true;
+                                if (Main.music[MusicID.Boss1].IsPlaying) offsetX = 2;
+                                offsetY = 10;
                             }
-                            else if (timerTrophy >= 240 && !Collections.checkList[Collections.itemList.FindIndex(x => x.type == ItemID.RetinazerTrophy)])
+                            else if (BossPage.collection.Any(x => x == ItemID.MusicBoxBoss2))
                             {
-                                drawTrophy = false;
+                                if (Main.music[MusicID.Boss2].IsPlaying) offsetX = 2;
+                                offsetY = 20;
                             }
-
-                            if (timerTrophy < 240 && Collections.checkList[Collections.itemList.FindIndex(x => x.type == ItemID.SpazmatismTrophy)])
+                            else if (BossPage.collection[2] == ItemID.MusicBoxBoss3)
                             {
-                                offsetX = 27;
-                                offsetY = 0;
-                                drawTrophy = true;
+                                if (Main.music[MusicID.Boss3].IsPlaying) offsetX = 2;
+                                offsetY = 24;
                             }
-                            else if (timerTrophy < 240 && !Collections.checkList[Collections.itemList.FindIndex(x => x.type == ItemID.SpazmatismTrophy)])
+                            else if (BossPage.collection[2] == ItemID.MusicBoxBoss4)
                             {
-                                drawTrophy = false;
+                                if (Main.music[MusicID.Boss4].IsPlaying) offsetX = 2;
+                                offsetY = 32;
                             }
-
-                            int backupX = offsetX;
-                            int backupY = offsetY;
-
-                            if (drawTrophy)
+                            else if (BossPage.collection[2] == ItemID.MusicBoxBoss5)
                             {
-                                for (int i = 0; i < 9; i++)
-                                {
-                                    Rectangle posRect = new Rectangle(pageRect.X + 98 + (offsetX * 16) - (backupX * 16), pageRect.Y + 126 + (offsetY * 16) - (backupY * 16), 18, 18);
-                                    Rectangle cutRect = new Rectangle(offsetX * 18, offsetY * 18, 18, 18);
-
-                                    spriteBatch.Draw(trophy, posRect, cutRect, new Color(255, 255, 255));
-
-                                    offsetX++;
-                                    if (i == 2 || i == 5)
-                                    {
-                                        offsetX = backupX;
-                                        offsetY++;
-                                    }
-                                }
+                                if (Main.music[MusicID.Boss5].IsPlaying) offsetX = 2;
+                                offsetY = 48;
                             }
-                        }
-                    }
-
-                    // Draw Twins Mask
-                    if (Collections.itemList.FindIndex(x => x.type == ItemID.TwinMask) != -1)
-                    {
-                        if (Collections.checkList[Collections.itemList.FindIndex(x => x.type == ItemID.TwinMask)])
-                        {
-                            Item newItem = new Item();
-                            newItem.SetDefaults(BossPage.collection[0]);
-                            Texture2D mask = ModLoader.GetTexture("Terraria/Armor_Head_" + newItem.headSlot);
-
-                            int frameCut = mask.Height / 24;
-                            Rectangle posRect = new Rectangle(pageRect.X + (pageRect.Width / 2) - (mask.Width / 2) - 8, pageRect.Y + (pageRect.Height / 2) - (frameCut / 2) - 86, mask.Width, frameCut);
-                            Rectangle cutRect = new Rectangle(0, 0, mask.Width, frameCut);
-                            spriteBatch.Draw(mask, posRect, cutRect, new Color(255, 255, 255));
-                        }
-                    }
-
-                    // Draw Twins Music Box
-                    if (Collections.itemList.FindIndex(x => x.type == ItemID.MusicBoxBoss2) != -1)
-                    {
-                        if (Collections.checkList[Collections.itemList.FindIndex(x => x.type == ItemID.MusicBoxBoss2)])
-                        {
-                            int offsetX = 0;
-                            int offsetY = 20;
-                            Main.instance.LoadTiles(139);
-                            Texture2D musicBox = Main.tileTexture[139];
-
-                            if (Main.music[MusicID.Boss2].IsPlaying) offsetX = 2;
+                            else if (BossPage.collection[2] == ItemID.MusicBoxPlantera)
+                            {
+                                if (Main.music[MusicID.Plantera].IsPlaying) offsetX = 2;
+                                offsetY = 46;
+                            }
+                            else if (BossPage.collection[2] == ItemID.MusicBoxDD2)
+                            {
+                                if (Main.music[MusicID.OldOnesArmy].IsPlaying) offsetX = 2;
+                                offsetY = 78;
+                            }
+                            else if (BossPage.collection[2] == ItemID.MusicBoxLunarBoss)
+                            {
+                                if (Main.music[MusicID.LunarBoss].IsPlaying) offsetX = 2;
+                                offsetY = 64;
+                            }
 
                             int backupX = offsetX;
                             int backupY = offsetY;
 
                             for (int i = 0; i < 4; i++)
                             {
-                                Rectangle posRect = new Rectangle(pageRect.X + 210 + (offsetX * 16) - (backupX * 16), pageRect.Y + 158 + (offsetY * 16) - (backupY * 16), 18, 18);
-                                Rectangle cutRect = new Rectangle(offsetX * 18, (offsetY * 18) - 2, 18, 18);
+                                Rectangle posRect = new Rectangle(pageRect.X + 210 + (offsetX * 16) - (backupX * 16), pageRect.Y + 158 + (offsetY * 16) - (backupY * 16), 16, 16);
+                                Rectangle cutRect = new Rectangle(offsetX * 18, (offsetY * 18) - 2, 16, 16);
 
                                 spriteBatch.Draw(musicBox, posRect, cutRect, new Color(255, 255, 255));
 
@@ -742,6 +858,26 @@ namespace BossAssist
                                 if (i == 1)
                                 {
                                     offsetX = backupX;
+                                    offsetY++;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            Main.instance.LoadTiles(ItemLoader.GetItem(BossPage.collection[2]).item.createTile);
+                            musicBox = Main.tileTexture[ItemLoader.GetItem(BossPage.collection[2]).item.createTile];
+
+                            for (int i = 0; i < 4; i++)
+                            {
+                                Rectangle posRect = new Rectangle(pageRect.X + 210 + (offsetX * 16), pageRect.Y + 158 + (offsetY * 16), 16, 16);
+                                Rectangle cutRect = new Rectangle(offsetX * 18, (offsetY * 18) - 2, 16, 16);
+
+                                spriteBatch.Draw(musicBox, posRect, cutRect, new Color(255, 255, 255));
+
+                                offsetX++;
+                                if (i == 1)
+                                {
+                                    offsetX = 0;
                                     offsetY++;
                                 }
                             }
@@ -813,22 +949,37 @@ namespace BossAssist
     {
         float order = 0;
         bool nextCheck;
+        string text;
 
         public TableOfContents(float order, string text, bool nextCheck, float textScale = 1, bool large = false) : base(text, textScale, large)
         {
             this.order = order;
             this.nextCheck = nextCheck;
             Recalculate();
+            this.text = text;
         }
 
         public override void Draw(SpriteBatch spriteBatch)
         {
             base.Draw(spriteBatch);
 
+            //TODO: fix up the collection star marker
+
             Texture2D progressBox = BossAssist.instance.GetTexture("Resources/Checkbox_Empty");
             CalculatedStyle innerDimensions = GetInnerDimensions();
             Vector2 pos = new Vector2(innerDimensions.X - 20, innerDimensions.Y - 5);
-            if (!Id.Contains("Header")) spriteBatch.Draw(progressBox, pos, Color.White);
+            spriteBatch.Draw(progressBox, pos, Color.White);
+            Vector2 pos2 = new Vector2(innerDimensions.X + Main.fontMouseText.MeasureString(text).X + 6, innerDimensions.Y - 2);
+            int index = BossAssist.instance.setup.SortedBosses.FindIndex(x => x.progression == order);
+            if (Main.LocalPlayer.GetModPlayer<PlayerAssist>().BossTrophies[index].lootCheck.All(x => x == true))
+            {
+                spriteBatch.Draw(BossAssist.instance.GetTexture("Resources/CheckBox_Chest"), pos2, Color.White);
+                pos2 = new Vector2(innerDimensions.X + Main.fontMouseText.MeasureString(text).X + 32, innerDimensions.Y - 2);
+            }
+            if (Main.LocalPlayer.GetModPlayer<PlayerAssist>().BossTrophies[index].checkList.All(x => x == true))
+            {
+                spriteBatch.Draw(BossAssist.instance.GetTexture("Resources/CheckBox_Star"), pos2, Color.White);
+            }
             if (order != -1f)
             {
                 BossAssist BA = BossAssist.instance;
@@ -842,6 +993,8 @@ namespace BossAssist
 
                 if (IsMouseHovering && !BA.setup.SortedBosses[Convert.ToInt32(Id)].downed() && nextCheck) TextColor = new Color(189, 180, 64);
                 else if (!IsMouseHovering && !BA.setup.SortedBosses[Convert.ToInt32(Id)].downed() && nextCheck) TextColor = new Color(248, 235, 91);
+
+                if (IsMouseHovering) BossLogPanel.headNum = Convert.ToInt32(Id);
             }
         }
 
@@ -869,7 +1022,56 @@ namespace BossAssist
             CalculatedStyle innerDimensions = GetInnerDimensions();
             Vector2 stringAdjust = Main.fontMouseText.MeasureString(buttonString);
             Vector2 pos = new Vector2(innerDimensions.X - (stringAdjust.X / 3) + Width.Pixels / 3, innerDimensions.Y - 10);
-            DynamicSpriteFontExtensionMethods.DrawString(spriteBatch, Main.fontMouseText, buttonString, pos, Color.Gold);
+            if (buttonString != "Disclaimer" && buttonString != "recordAlts")
+            {
+                DynamicSpriteFontExtensionMethods.DrawString(spriteBatch, Main.fontMouseText, buttonString, pos, Color.Gold);
+            }
+            
+            Texture2D text = ModLoader.GetTexture("Terraria/UI/Achievement_Categories");
+            Rectangle exclamPos = new Rectangle((int)GetInnerDimensions().X - 12, (int)GetInnerDimensions().Y - 12, 32, 32);
+
+            if (buttonString == "")
+            {
+                if (BossLogUI.SubPageNum == 0)
+                {
+                    if (!BossLogUI.AltRecords)
+                    {
+                        Rectangle exclamCut = new Rectangle(34 * 3, 0, 32, 32);
+                        spriteBatch.Draw(text, exclamPos, exclamCut, new Color(255, 255, 255));
+                        if (IsMouseHovering) Main.hoverItemName = "Click to see your 'Worst' records" +
+                                                                "\nRecords are shown as your best compared to your last fight" +
+                                                                "\n[c/daa520:Quickest Victory:] Fastest time to kill a boss" +
+                                                                "\n[c/daa520:Vitality:] Highest health drop youve been in a fight" +
+                                                                "\n[c/daa520:Artful Dodging:] Least amount of hits taken and most time between hits";
+                    }
+                    else
+                    {
+                        Rectangle exclamCut = new Rectangle(0, 0, 32, 32);
+                        spriteBatch.Draw(text, exclamPos, exclamCut, new Color(255, 255, 255));
+                        if (IsMouseHovering) Main.hoverItemName = "Click to see your 'Best' records" +
+                                                                "\nRecords are shown as your worst compared to your last fight" +
+                                                                "\n[c/daa520:Quickest Victory:] Longest time to kill a boss" +
+                                                                "\n[c/daa520:Vitality:] Lowest health you have had in a fight" +
+                                                                "\n[c/daa520:Artful Dodging:] Most amount of hits taken and most time between hits";
+                    }
+                }
+                else if (BossLogUI.SubPageNum == 2)
+                {
+                    Rectangle exclamCut = new Rectangle(34 * 1, 0, 32, 32);
+                    spriteBatch.Draw(text, exclamPos, exclamCut, new Color(255, 255, 255));
+                    if (IsMouseHovering) Main.hoverItemName = "DISCLAIMER:" +
+                                                            "\nLoot Tables only show the original drops provided" +
+                                                            "\nand does not include drops added by outside mods!";
+                }
+                else if (BossLogUI.SubPageNum == 3)
+                {
+                    Rectangle exclamCut = new Rectangle(34 * 1, 0, 32, 32);
+                    spriteBatch.Draw(text, exclamPos, exclamCut, new Color(255, 255, 255));
+                    if (IsMouseHovering) Main.hoverItemName = "DISCLAIMER:" +
+                                                            "\nCollections only show the original collectibles provided" +
+                                                            "\nand does not include collectibles added by outside mods!";
+                }
+            }
         }
     }
 
@@ -885,6 +1087,7 @@ namespace BossAssist
         public SubpageButton spawnButton;
         public SubpageButton lootButton;
         public SubpageButton collectButton;
+        public SubpageButton toolTipButton;
 
         public UIImage bossIcon;
         public UIImage spazHead; // Special Case
@@ -900,11 +1103,12 @@ namespace BossAssist
         public FixedUIScrollbar scrollOne;
         public FixedUIScrollbar scrollTwo;
 
-        public UIList pageTwoItemList;
+        public UIList pageTwoItemList; // Item slot lists that include: Loot tables, spawn item, and collectibles
         public FixedUIScrollbar pageTwoScroll;
         
         public static int PageNum = 0; // Selected Boss Page
         public static int SubPageNum = 0; // Selected Topic Tab (Loot, Stats, etc.)
+        public static bool AltRecords = false; // Flip between best and worst
         public static bool visible = false;
 
         public override void OnInitialize()
@@ -917,7 +1121,6 @@ namespace BossAssist
             bosslogbutton.Top.Pixels = Main.screenHeight - bosslogbutton.Height.Pixels - 8;
             bosslogbutton.OnClick += new MouseEvent(OpenBossLog);
             bosslogbutton.OnRightClick += new MouseEvent(OpenNextBoss);
-            Append(bosslogbutton);
 
             Texture2D bosslogTexture = BossAssist.instance.GetTexture("Resources/UI_BossLogPanel");
             bossLogPanel = new BookUI(bosslogTexture);
@@ -939,7 +1142,6 @@ namespace BossAssist
             PrevPage.Left.Pixels = 30;
             PrevPage.Top.Pixels = 410;
             PrevPage.OnClick += new MouseEvent(PageChangerClicked);
-            PageOne.Append(PrevPage);
 
             Texture2D tocTexture = BossAssist.instance.GetTexture("Resources/ToC");
             TOCPage = new BossAssistButton(tocTexture, "") { Id = "TableOfContents" };
@@ -948,7 +1150,6 @@ namespace BossAssist
             TOCPage.Left.Pixels = 0;
             TOCPage.Top.Pixels = 410;
             TOCPage.OnClick += new MouseEvent(PageChangerClicked);
-            PageOne.Append(TOCPage);
 
             prehardmodeList = new UIList();
             prehardmodeList.Left.Pixels = 4;
@@ -989,7 +1190,6 @@ namespace BossAssist
             bossIcon.Left.Pixels = PageOne.Width.Pixels - bossIcon.Width.Pixels - 15;
             bossIcon.Top.Pixels = 5;
             bossIcon.OnClick += new MouseEvent(ResetStats);
-            PageOne.Append(bossIcon);
 
             spazHead = new UIImage(ModLoader.GetTexture("Terraria/NPC_Head_Boss_16"));
             spazHead.Left.Pixels = PageOne.Width.Pixels - 80;
@@ -1013,7 +1213,6 @@ namespace BossAssist
             NextPage.Left.Pixels = PageTwo.Width.Pixels - (int)(NextPage.Width.Pixels * 4.5);
             NextPage.Top.Pixels = 410;
             NextPage.OnClick += new MouseEvent(PageChangerClicked);
-            PageTwo.Append(NextPage);
 
             Texture2D credTexture = BossAssist.instance.GetTexture("Resources/Credits");
             CredPage = new BossAssistButton(credTexture, "") { Id = "Credits" };
@@ -1022,7 +1221,6 @@ namespace BossAssist
             CredPage.Left.Pixels = PageTwo.Width.Pixels - (int)(NextPage.Width.Pixels * 3);
             CredPage.Top.Pixels = 410;
             CredPage.OnClick += new MouseEvent(PageChangerClicked);
-            PageTwo.Append(CredPage);
 
             hardmodeList = new UIList();
             hardmodeList.Left.Pixels = 4;
@@ -1037,7 +1235,6 @@ namespace BossAssist
             recordButton.Left.Pixels = 0;
             recordButton.Top.Pixels = 15;
             recordButton.OnClick += new MouseEvent(OpenRecord);
-            PageTwo.Append(recordButton);
 
             spawnButton = new SubpageButton("Spawn Item");
             spawnButton.Width.Pixels = PageTwo.Width.Pixels / 2 - 24;
@@ -1045,7 +1242,6 @@ namespace BossAssist
             spawnButton.Left.Pixels = PageTwo.Width.Pixels / 2 - 8;
             spawnButton.Top.Pixels = 15;
             spawnButton.OnClick += new MouseEvent(OpenSpawn);
-            PageTwo.Append(spawnButton);
 
             lootButton = new SubpageButton("Loot Table");
             lootButton.Width.Pixels = PageTwo.Width.Pixels / 2 - 24;
@@ -1053,7 +1249,6 @@ namespace BossAssist
             lootButton.Left.Pixels = 0;
             lootButton.Top.Pixels = 50;
             lootButton.OnClick += new MouseEvent(OpenLoot);
-            PageTwo.Append(lootButton);
 
             collectButton = new SubpageButton("Collectibles");
             collectButton.Width.Pixels = PageTwo.Width.Pixels / 2 - 24;
@@ -1061,7 +1256,13 @@ namespace BossAssist
             collectButton.Left.Pixels = PageTwo.Width.Pixels / 2 - 8;
             collectButton.Top.Pixels = 50;
             collectButton.OnClick += new MouseEvent(OpenCollect);
-            PageTwo.Append(collectButton);
+
+            toolTipButton = new SubpageButton("Disclaimer");
+            toolTipButton.Width.Pixels = 32;
+            toolTipButton.Height.Pixels = 32;
+            toolTipButton.Left.Pixels = PageTwo.Width.Pixels - toolTipButton.Width.Pixels - 30;
+            toolTipButton.Top.Pixels = 100;
+            toolTipButton.OnClick += new MouseEvent(SwapRecordPage);
 
             bossLogPanel.Append(PageTwo);
 
@@ -1074,9 +1275,30 @@ namespace BossAssist
             if (!visible) RemoveChild(bosslogbutton);
             else Append(bosslogbutton);
 
+            if (BossAssist.ToggleBossLog.JustPressed)
+            {
+                if (!BookUI.visible)
+                {
+                    PageNum = -1;
+                    SubPageNum = 0;
+                    BossLogPanel.visible = true;
+                    bossLogPanel.Append(PageOne);
+                    bossLogPanel.Append(PageTwo);
+                    BookUI.visible = true;
+                    UpdateTableofContents();
+                }
+                else
+                {
+                    BossLogPanel.visible = false;
+                    RemoveChild(PageOne);
+                    RemoveChild(PageTwo);
+                    BookUI.visible = false;
+                }
+            }
+
             if (BossLogPanel.visible && BookUI.visible)
             {
-                if (Main.LocalPlayer.controlInv)
+                if (Main.LocalPlayer.controlInv || Main.mouseItem.type != 0)
                 {
                     BossLogPanel.visible = false;
                     RemoveChild(PageOne);
@@ -1084,6 +1306,17 @@ namespace BossAssist
                     BookUI.visible = false;
                     Main.playerInventory = true;
                 }
+            }
+
+            if (PageNum >= 0 && SubPageNum != 1 && !PageTwo.HasChild(toolTipButton))
+            {
+                toolTipButton = new SubpageButton("");
+                toolTipButton.Width.Pixels = 32;
+                toolTipButton.Height.Pixels = 32;
+                toolTipButton.Left.Pixels = PageTwo.Width.Pixels - toolTipButton.Width.Pixels - 30;
+                toolTipButton.Top.Pixels = 86;
+                toolTipButton.OnClick += new MouseEvent(SwapRecordPage);
+                PageTwo.Append(toolTipButton);
             }
 
             // We rewrite the position of the button to make sure it updates with the screen res
@@ -1095,32 +1328,7 @@ namespace BossAssist
             if (PageNum >= 0)
             {
                 PageOne.Append(bossIcon);
-
-                Main.instance.LoadNPC(BossAssist.instance.setup.SortedBosses[PageNum].id);
-                Texture2D head;
-                if (BossAssist.instance.setup.SortedBosses[PageNum].id < NPCID.Count)
-                {
-                    int type = BossAssist.instance.setup.SortedBosses[PageNum].id;
-                    if (type == NPCID.KingSlime) head = ModLoader.GetTexture("Terraria/NPC_Head_Boss_7");
-                    else if (type == NPCID.EyeofCthulhu) head = ModLoader.GetTexture("Terraria/NPC_Head_Boss_0");
-                    else if (type == NPCID.EaterofWorldsHead) head = ModLoader.GetTexture("Terraria/NPC_Head_Boss_2");
-                    else if (type == NPCID.BrainofCthulhu) head = ModLoader.GetTexture("Terraria/NPC_Head_Boss_23");
-                    else if (type == NPCID.QueenBee) head = ModLoader.GetTexture("Terraria/NPC_Head_Boss_14");
-                    else if (type == NPCID.SkeletronHead) head = ModLoader.GetTexture("Terraria/NPC_Head_Boss_19");
-                    else if (type == NPCID.WallofFlesh) head = ModLoader.GetTexture("Terraria/NPC_Head_Boss_22");
-                    else if (type == NPCID.Retinazer) head = ModLoader.GetTexture("Terraria/NPC_Head_Boss_21");
-                    else if (type == NPCID.TheDestroyer) head = ModLoader.GetTexture("Terraria/NPC_Head_Boss_25");
-                    else if (type == NPCID.SkeletronPrime) head = ModLoader.GetTexture("Terraria/NPC_Head_Boss_18");
-                    else if (type == NPCID.Plantera) head = ModLoader.GetTexture("Terraria/NPC_Head_Boss_11");
-                    else if (type == NPCID.Golem) head = ModLoader.GetTexture("Terraria/NPC_Head_Boss_5");
-                    else if (type == NPCID.DD2Betsy) head = ModLoader.GetTexture("Terraria/NPC_Head_Boss_34");
-                    else if (type == NPCID.DukeFishron) head = ModLoader.GetTexture("Terraria/NPC_Head_Boss_4");
-                    else if (type == NPCID.CultistBoss) head = ModLoader.GetTexture("Terraria/NPC_Head_Boss_24");
-                    else if (type == NPCID.MoonLordHead) head = ModLoader.GetTexture("Terraria/NPC_Head_Boss_8");
-                    else head = ModLoader.GetTexture("Terraria/NPC_Head_0");
-                }
-                else head = ModLoader.GetTexture(NPCLoader.GetNPC(BossAssist.instance.setup.SortedBosses[PageNum].id).BossHeadTexture);
-                bossIcon.SetImage(head);
+                bossIcon.SetImage(GetBossHead(PageNum));
 
                 if (PageNum == BossAssist.instance.setup.SortedBosses.FindIndex(x => x.id == NPCID.Retinazer)) PageOne.Append(spazHead);
                 else PageOne.RemoveChild(spazHead);
@@ -1128,12 +1336,18 @@ namespace BossAssist
                 if (PageNum == BossAssist.instance.setup.SortedBosses.FindIndex(x => x.id == NPCID.DD2Betsy)) bossIcon.Left.Pixels = PageOne.Width.Pixels - bossIcon.Width.Pixels - 10;
                 else bossIcon.Left.Pixels = PageOne.Width.Pixels - bossIcon.Width.Pixels - 15;
             }
-            else PageOne.RemoveChild(bossIcon);
+            else
+            {
+                bossIcon.Left.Pixels = PageOne.Width.Pixels - bossIcon.Width.Pixels - 15;
+                PageOne.RemoveChild(bossIcon);
+                PageOne.RemoveChild(spazHead);
+            }
 
             if (PageNum == -2) PageTwo.RemoveChild(NextPage);
-            else PageTwo.Append(NextPage);
+            else if (!PageTwo.HasChild(NextPage)) PageTwo.Append(NextPage);
             if (PageNum == -1) PageOne.RemoveChild(PrevPage);
-            else PageOne.Append(PrevPage);
+            else if (!PageOne.HasChild(PrevPage)) PageOne.Append(PrevPage);
+            if (!PageOne.HasChild(TOCPage)) PageOne.Append(TOCPage);
 
             base.Update(gameTime);
         }
@@ -1174,6 +1388,7 @@ namespace BossAssist
             if (PageNum != -1)
             {
                 SubPageNum = 1;
+                PageOne.RemoveChild(prehardmodeList);
                 OpenSpawn(evt, listeningElement);
             }
         }
@@ -1181,7 +1396,7 @@ namespace BossAssist
         private void ResetStats(UIMouseEvent evt, UIElement listeningElement)
         {
             // Since it only applies to Boss Icons, the page check is unnecessary
-            if (Main.LocalPlayer.name.Contains("Debugger"))
+            if (true)
             {
                 Main.LocalPlayer.GetModPlayer<PlayerAssist>().AllBossRecords[PageNum].stat.fightTime = 0;
                 Main.LocalPlayer.GetModPlayer<PlayerAssist>().AllBossRecords[PageNum].stat.fightTime2 = 0;
@@ -1223,7 +1438,7 @@ namespace BossAssist
             else if (listeningElement.Id == "Next")
             {
                 if (PageNum != BossAssist.instance.setup.SortedBosses.Count - 1) PageNum++;
-                else PageNum = -2;
+                else UpdateCredits();
 
                 if (PageNum != -2)
                 {
@@ -1232,21 +1447,9 @@ namespace BossAssist
                     else if (SubPageNum == 2) OpenLoot(evt, listeningElement);
                     else if (SubPageNum == 3) OpenCollect(evt, listeningElement);
                 }
-                else UpdateCredits();
             }
-            else if (listeningElement.Id == "TableOfContents")
-            {
-                if (PageNum != -1)
-                {
-                    PageNum = -1;
-                    UpdateTableofContents();
-                }
-            }
-            else if (listeningElement.Id == "Credits")
-            {
-                PageNum = -2;
-                UpdateCredits();
-            }
+            else if (listeningElement.Id == "TableOfContents") UpdateTableofContents();
+            else if (listeningElement.Id == "Credits") UpdateCredits();
         }
 
         private void OpenRecord(UIMouseEvent evt, UIElement listeningElement)
@@ -1299,7 +1502,7 @@ namespace BossAssist
                 int col = 0;
                 for (int k = 0; k < ingredients.Count; k++)
                 {
-                    LogItemSlot ingList = new LogItemSlot(ingredients[k], ingredients[k].HoverName);
+                    LogItemSlot ingList = new LogItemSlot(ingredients[k], ingredients[k].HoverName, ItemSlot.Context.GuideItem);
                     ingList.Height.Pixels = 50;
                     ingList.Width.Pixels = 50;
                     ingList.Top.Pixels = 105 + (56 * (row + 1));
@@ -1308,6 +1511,7 @@ namespace BossAssist
                     col++;
                     if (k == 4 || k == 9)
                     {
+                        if (ingList.item.type == 0) break;
                         col = 0;
                         row++;
                     }
@@ -1404,6 +1608,7 @@ namespace BossAssist
                     LogItemSlot lootTable = new LogItemSlot(expertItem, expertItem.Name, ItemSlot.Context.ShopItem);
                     lootTable.Height.Pixels = 50;
                     lootTable.Width.Pixels = 50;
+                    lootTable.Id = "loot_" + i;
                     lootTable.Left.Pixels = (col * 56);
                     newRow.Append(lootTable);
                     col++;
@@ -1424,9 +1629,10 @@ namespace BossAssist
                 if (loot.expert || loot.Name.Contains("Treasure Bag")) continue;
                 else
                 {
-                    LogItemSlot lootTable = new LogItemSlot(loot, loot.Name, ItemSlot.Context.GuideItem);
+                    LogItemSlot lootTable = new LogItemSlot(loot, loot.Name, ItemSlot.Context.TrashItem);
                     lootTable.Height.Pixels = 50;
                     lootTable.Width.Pixels = 50;
+                    lootTable.Id = "loot_" + i;
                     lootTable.Left.Pixels = (col * 56);
                     newRow.Append(lootTable);
                     col++;
@@ -1471,7 +1677,7 @@ namespace BossAssist
                 Item collectible = new Item();
                 collectible.SetDefaults(shortcut.collection[i]);
 
-                LogItemSlot collectionTable = new LogItemSlot(collectible, collectible.Name, ItemSlot.Context.GuideItem);
+                LogItemSlot collectionTable = new LogItemSlot(collectible, collectible.Name);
                 collectionTable.Height.Pixels = 50;
                 collectionTable.Width.Pixels = 50;
                 collectionTable.Id = "collect" + i;
@@ -1493,8 +1699,8 @@ namespace BossAssist
 
         public void UpdateTableofContents()
         {
+            PageNum = -1;
             ResetPageTwo();
-            if (PageNum != -1) return;
             int nextCheck = 0;
             bool nextCheckBool = false;
             prehardmodeList.Clear();
@@ -1578,6 +1784,7 @@ namespace BossAssist
 
         private void UpdateCredits()
         {
+            PageNum = -2;
             ResetPageTwo();
             List<string> optedMods = new List<string>();
             foreach (BossInfo boss in BossAssist.instance.setup.SortedBosses)
@@ -1660,6 +1867,41 @@ namespace BossAssist
                 PageTwo.Append(collectButton);
                 PageTwo.Append(recordButton);
             }
+        }
+
+        private void SwapRecordPage(UIMouseEvent evt, UIElement listeningElement)
+        {
+            if (SubPageNum == 0) AltRecords = !AltRecords;
+        }
+
+        public static Texture2D GetBossHead(int page)
+        {
+            Main.instance.LoadNPC(BossAssist.instance.setup.SortedBosses[page].id);
+            Texture2D head;
+            if (BossAssist.instance.setup.SortedBosses[page].id < NPCID.Count)
+            {
+                int type = BossAssist.instance.setup.SortedBosses[page].id;
+                if (type == NPCID.KingSlime) head = ModLoader.GetTexture("Terraria/NPC_Head_Boss_7");
+                else if (type == NPCID.EyeofCthulhu) head = ModLoader.GetTexture("Terraria/NPC_Head_Boss_0");
+                else if (type == NPCID.EaterofWorldsHead) head = ModLoader.GetTexture("Terraria/NPC_Head_Boss_2");
+                else if (type == NPCID.BrainofCthulhu) head = ModLoader.GetTexture("Terraria/NPC_Head_Boss_23");
+                else if (type == NPCID.QueenBee) head = ModLoader.GetTexture("Terraria/NPC_Head_Boss_14");
+                else if (type == NPCID.SkeletronHead) head = ModLoader.GetTexture("Terraria/NPC_Head_Boss_19");
+                else if (type == NPCID.WallofFlesh) head = ModLoader.GetTexture("Terraria/NPC_Head_Boss_22");
+                else if (type == NPCID.Retinazer) head = ModLoader.GetTexture("Terraria/NPC_Head_Boss_21");
+                else if (type == NPCID.TheDestroyer) head = ModLoader.GetTexture("Terraria/NPC_Head_Boss_25");
+                else if (type == NPCID.SkeletronPrime) head = ModLoader.GetTexture("Terraria/NPC_Head_Boss_18");
+                else if (type == NPCID.Plantera) head = ModLoader.GetTexture("Terraria/NPC_Head_Boss_11");
+                else if (type == NPCID.Golem) head = ModLoader.GetTexture("Terraria/NPC_Head_Boss_5");
+                else if (type == NPCID.DD2Betsy) head = ModLoader.GetTexture("Terraria/NPC_Head_Boss_34");
+                else if (type == NPCID.DukeFishron) head = ModLoader.GetTexture("Terraria/NPC_Head_Boss_4");
+                else if (type == NPCID.CultistBoss) head = ModLoader.GetTexture("Terraria/NPC_Head_Boss_24");
+                else if (type == NPCID.MoonLordHead) head = ModLoader.GetTexture("Terraria/NPC_Head_Boss_8");
+                else head = ModLoader.GetTexture("Terraria/NPC_Head_0");
+            }
+            else head = ModLoader.GetTexture(NPCLoader.GetNPC(BossAssist.instance.setup.SortedBosses[page].id).BossHeadTexture);
+
+            return head;
         }
     }
 }

@@ -32,9 +32,7 @@ namespace BossAssist
             for (int i = 0; i < Main.maxItems; i++)
             {
                 if (!Main.item[i].active) continue;
-                if ((Main.item[i].consumable && Main.item[i].Name == "Treasure Bag" && Main.item[i].expert) // Boss Treasure Bags
-                || (Main.item[i].rare == 9 && Main.item[i].damage <= 0 && Main.item[i].Name.Contains("Fragment")) // Tower Fragments
-                || (Main.item[i].type == ItemID.ShadowScale || Main.item[i].type == ItemID.TissueSample)) // Shadow Scales and Tissue Samples
+                if (IsWhiteListItem(Main.item[i]))
                 {
                     whitelistPos.Add(Main.item[i].Center);
                     whitelistType.Add(Main.item[i].type);
@@ -71,6 +69,14 @@ namespace BossAssist
             Rectangle drawPos = new Rectangle((int)drawPosition.X, (int)drawPosition.Y, texture.Width, texture.Height);
             Vector2 originLoc = new Vector2(texture.Width / 2, texture.Height / 2);
             Main.spriteBatch.Draw(texture, drawPos, null, Color.White, 0f, originLoc, SpriteEffects.None, 0f);
+        }
+
+        public static bool IsWhiteListItem(Item item)
+        {
+            if (item.consumable && item.Name == "Treasure Bag" && item.expert) return true;
+            if (item.rare == 9 && item.damage <= 0 && item.Name.Contains("Fragment")) return true;
+            if (item.type == ItemID.ShadowScale || item.type == ItemID.TissueSample) return true;
+            return false;
         }
     }
 }

@@ -21,7 +21,7 @@ namespace BossAssist
         bool isPumpkinMoon = false;
         bool isFrostMoon = false;
         bool isEclipse = false;
-        
+
         public override void PreUpdate()
         {
             List<BossInfo> BL = BossAssist.instance.setup.SortedBosses;
@@ -113,6 +113,18 @@ namespace BossAssist
 
         public override void PostUpdate()
         {
+            // Loot Collections
+            for (int i = 0; i < Main.LocalPlayer.GetModPlayer<PlayerAssist>().BossTrophies.Count; i++)
+            {
+                for (int j = 0; j < Main.LocalPlayer.GetModPlayer<PlayerAssist>().BossTrophies[i].lootList.Count; j++)
+                {
+                    if (Main.LocalPlayer.HasItem(Main.LocalPlayer.GetModPlayer<PlayerAssist>().BossTrophies[i].lootList[j].type))
+                    {
+                        Main.LocalPlayer.GetModPlayer<PlayerAssist>().BossTrophies[i].lootCheck[j] = true;
+                    }
+                }
+            }
+
             // Boss Collections
             for (int i = 0; i < Main.LocalPlayer.GetModPlayer<PlayerAssist>().BossTrophies.Count; i++)
             {

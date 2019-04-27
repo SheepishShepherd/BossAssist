@@ -1,9 +1,10 @@
-﻿using Microsoft.Xna.Framework.Graphics; //DELETE
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Terraria;
 using Terraria.ID;
 using Terraria.ModLoader;
+
+//TODO: Add spawn item desciptions
 
 namespace BossAssist
 {
@@ -48,17 +49,25 @@ namespace BossAssist
 
         internal void AddToLootTable(int bType, string bSource, List<int> bLoot)
         {
-            foreach (int item in bLoot)
+            int index = SortedBosses.FindIndex(x => x.id == bType && x.source == bSource);
+            if (index != -1)
             {
-                SortedBosses[SortedBosses.FindIndex(x => x.id == bType && x.source == bSource)].loot.Add(item);
+                foreach (int item in bLoot)
+                {
+                    SortedBosses[index].loot.Add(item);
+                }
             }
         }
 
         internal void AddToCollection(int bType, string bSource, List<int> bCollect)
         {
-            foreach (int item in bCollect)
+            int index = SortedBosses.FindIndex(x => x.id == bType && x.source == bSource);
+            if (index != -1)
             {
-                SortedBosses[SortedBosses.FindIndex(x => x.id == bType && x.source == bSource)].collection.Add(item);
+                foreach (int item in bCollect)
+                {
+                    SortedBosses[index].collection.Add(item);
+                }
             }
         }
 

@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using Terraria;
 using Terraria.ModLoader.IO;
 
+// Make subsubpages for Records (Best Stats, Worst Stats, Explanation)
+// Setup "Last Fight" Stats for comparing
+
 namespace BossAssist
 {
     public class BossRecord : TagSerializable
@@ -45,14 +48,22 @@ namespace BossAssist
         public int fightTime; // Quickest time a player has defeated a boss
         public int fightTime2; // Slowest time a player has defeated a boss
 
+        public int fightTimeL = -1;
+
         public int dodgeTime; // Most time that a player has not been damaged during a boss fight
         public int totalDodges; // Least amount of times the player has been damaged
         public int totalDodges2; // Most amount of times the player has been damaged
+
+        public int dodgeTimeL = -1;
+        public int totalDodgesL = -1;
 
         public int brink; // Least amount of health a player has had during a boss fight
         public int brinkPercent; // The above stat in %
         public int brink2; // "Highest" lowest amount of health a player has had during a boss fight
         public int brinkPercent2; // The above stat in %
+
+        public int brinkL = -1;
+        public int brinkPercentL = -1;
 
         public static Func<TagCompound, BossStats> DESERIALIZER = tag => new BossStats(tag);
 
@@ -95,8 +106,12 @@ namespace BossAssist
     {
         internal string modName;
         internal string bossName;
+
         internal List<Item> itemList;
         internal List<bool> checkList;
+
+        internal List<Item> lootList;
+        internal List<bool> lootCheck;
 
         public static Func<TagCompound, BossCollection> DESERIALIZER = tag => new BossCollection(tag);
 
@@ -106,6 +121,8 @@ namespace BossAssist
             bossName = tag.Get<string>(nameof(bossName));
             itemList = tag.Get<List<Item>>(nameof(itemList));
             checkList = tag.Get<List<bool>>(nameof(checkList));
+            lootList = tag.Get<List<Item>>(nameof(lootList));
+            lootCheck = tag.Get<List<bool>>(nameof(lootCheck));
         }
 
         public BossCollection(string mod, string boss)
@@ -118,10 +135,12 @@ namespace BossAssist
         {
             return new TagCompound
             {
-                { nameof(bossName), bossName },
                 { nameof(modName), modName },
+                { nameof(bossName), bossName },
                 { nameof(itemList), itemList },
-                { nameof(checkList), checkList }
+                { nameof(checkList), checkList },
+                { nameof(lootList), lootList },
+                { nameof(lootCheck), lootCheck }
             };
         }
     }
