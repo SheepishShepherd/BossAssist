@@ -1,37 +1,54 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Terraria;
 using Terraria.ID;
+using IL.Terraria.World.Generation; /// To prevent corruption searching lag in the future
+
+using System;
 using Terraria.ModLoader;
+using Terraria.Utilities;
+using ReLogic.Graphics;
+
+/// ADDITION: Batby suggests a map icon of the nearest corruption/crimson when you talk to the dryad aboout percentage evil
+/// ADDITION: Batby suggests a map icon of the nearest corruption/crimson when you talk to the dryad aboout percentage evil
+/// ADDITION: Batby suggests a map icon of the nearest corruption/crimson when you talk to the dryad aboout percentage evil
+
+/*
+
+	Ye fabled Crash regaurding the Map. Unsure if fixed now but just in case it isnt:
+	
+	Index was out of range. Must be non-negative and less than the size of the collection.
+	Parameter name: index
+	   at System.ThrowHelper.ThrowArgumentOutOfRangeException(ExceptionArgument argument, ExceptionResource resource)
+	   at System.Collections.Generic.List`1.get_Item(Int32 index)
+	   at BossAssist.MapAssist.DrawIcons() in C:\Users\TurtleShark's Bros\Documents\My Games\Terraria\ModLoader\Mod Sources\BossAssist\BossLogUI.cs:line 86
+	   at BossAssist.MapAssist.DrawFullscreenMap() in C:\Users\TurtleShark's Bros\Documents\My Games\Terraria\ModLoader\Mod Sources\BossAssist\BossLogUI.cs:line 78
+	   at BossAssist.BossAssist.PostDrawFullscreenMap(String& mouseText) in C:\Users\TurtleShark's Bros\Documents\My Games\Terraria\ModLoader\Mod Sources\BossAssist\DataManager.cs:line 157
+	   at Terraria.ModLoader.ModHooks.PostDrawFullscreenMap(String& mouseText)
+	   at Terraria.Main.DrawMap()
+	   at Terraria.Main.do_Draw(GameTime gameTime)
+	   at Terraria.Main.DoDraw(GameTime gameTime)
+
+*/
 
 namespace BossAssist
 {
     public static class MapAssist
     {
-        public static List<Vector2> bossBagPos;
-        public static List<int> bossBagType;
+		#region [Item Drawing]
+		public static List<Vector2> whitelistPos;
+        public static List<int> whitelistType;
 
-        public static List<Vector2> fragmentPos;
-        public static List<int> fragmentType;
-
-        public static List<Vector2> scalesPos;
-        public static List<int> scalesType;
-
-        internal static void FullMapInitialise()
+        internal static void FullMapInitialize()
         {
-            bossBagPos = new List<Vector2>();
-            bossBagType = new List<int>();
-
-            fragmentPos = new List<Vector2>();
-            fragmentType = new List<int>();
-
-            scalesPos = new List<Vector2>();
-            scalesType = new List<int>();
+            whitelistPos = new List<Vector2>();
+            whitelistType = new List<int>();
+			tilePos = new Vector2();
+			shouldDraw = false;
         }
 
-        public static void DrawFullscreenMap(Mod mod, ref string mouseText)
+        public static void DrawFullscreenMap()
         {
             UpdateMapLocations();
             DrawIcons();
@@ -39,58 +56,31 @@ namespace BossAssist
 
         private static void UpdateMapLocations()
         {
-            bossBagPos.Clear();
-            bossBagType.Clear();
+            whitelistPos.Clear();
+            whitelistType.Clear();
 
-            fragmentPos.Clear();
-            fragmentType.Clear();
-
-            scalesPos.Clear();
-            scalesType.Clear();
-
-            for (int i = 0; i < Main.maxItems; i++)
+            foreach (Item item in Main.item)
             {
-                if (!Main.item[i].active) continue;
-                if (Main.item[i].consumable && Main.item[i].Name == "Treasure Bag" && Main.item[i].expert)
+                if (!item.active) continue;
+                if (IsWhiteListItem(item))
                 {
-                    bossBagPos.Add(Main.item[i].Center);
-                    bossBagType.Add(Main.item[i].type);
-                }
-                if (Main.item[i].rare == 9 && Main.item[i].damage <= 0 && Main.item[i].Name.Contains("Fragment"))
-                {
-                    fragmentPos.Add(Main.item[i].Center);
-                    fragmentType.Add(Main.item[i].type);
-                }
-                if (Main.item[i].type == ItemID.ShadowScale || Main.item[i].type == ItemID.TissueSample)
-                {
-                    scalesPos.Add(Main.item[i].Center);
-                    scalesType.Add(Main.item[i].type);
+                    whitelistPos.Add(item.Center);
+                    whitelistType.Add(item.type);
                 }
             }
         }
 
         private static void DrawIcons()
         {
-            Texture2D drawTexture = null;
-            Vector2 drawPosition = new Vector2();
-            
-            foreach (Vector2 bossBag in bossBagPos)
+			foreach (Vector2 item in whitelistPos)
             {
-                drawTexture = Main.itemTexture[bossBagType[bossBagPos.IndexOf(bossBag)]];
-                drawPosition = CalculateDrawPos(new Vector2(bossBag.X / 16, bossBag.Y / 16));
-                DrawTextureOnMap(drawTexture, drawPosition);
-            }
-            foreach (Vector2 frag in fragmentPos)
-            {
-                drawTexture = Main.itemTexture[fragmentType[fragmentPos.IndexOf(frag)]];
-                drawPosition = CalculateDrawPos(new Vector2(frag.X / 16, frag.Y / 16));
-                DrawTextureOnMap(drawTexture, drawPosition);
-            }
-            foreach (Vector2 loot in scalesPos)
-            {
-                drawTexture = Main.itemTexture[scalesType[scalesPos.IndexOf(loot)]];
-                drawPosition = CalculateDrawPos(new Vector2(loot.X / 16, loot.Y / 16));
-                DrawTextureOnMap(drawTexture, drawPosition);
+				Texture2D drawTexture = Main.itemTexture[whitelistType[whitelistPos.IndexOf(item)]];
+				Vector2 drawPosition = CalculateDrawPos(new Vector2(item.X / 16, item.Y / 16));
+
+				if (WhiteListType(whitelistType[whitelistPos.IndexOf(item)]) == 1 && !BossAssist.ClientConfig.FragmentsBool) continue;
+				if (WhiteListType(whitelistType[whitelistPos.IndexOf(item)]) == 2 && !BossAssist.ClientConfig.ScalesBool) continue;
+
+				DrawTextureOnMap(drawTexture, drawPosition);
             }
         }
 
@@ -111,5 +101,108 @@ namespace BossAssist
             Vector2 originLoc = new Vector2(texture.Width / 2, texture.Height / 2);
             Main.spriteBatch.Draw(texture, drawPos, null, Color.White, 0f, originLoc, SpriteEffects.None, 0f);
         }
-    }
+
+        public static bool IsWhiteListItem(Item item)
+        {
+            if (item.consumable && item.Name == "Treasure Bag" && item.expert) return true;
+            if (item.rare == 9 && item.damage <= 0 && item.Name.Contains("Fragment")) return true;
+            if (item.type == ItemID.ShadowScale || item.type == ItemID.TissueSample) return true;
+            return false;
+        }
+
+		public static int WhiteListType(int type)
+		{
+			Item item = new Item();
+			item.SetDefaults(type);
+
+			if (item.consumable && item.Name == "Treasure Bag" && item.expert) return 0;
+			if (item.rare == 9 && item.damage <= 0 && item.Name.Contains("Fragment")) return 1;
+			if (item.type == ItemID.ShadowScale || item.type == ItemID.TissueSample) return 2;
+			return -1;
+		}
+		#endregion
+
+		#region EvilFinder
+		public static Vector2 tilePos;
+		public static bool shouldDraw = false;
+		public static int evilType = 0;
+
+		public static void DrawNearestEvil(Vector2 pos)
+		{
+			if (pos == new Vector2(0, 0) || evilType == 0) return;
+			Texture2D drawTexture = null;
+			if (evilType == 1) drawTexture = Main.itemTexture[ItemID.CorruptFishingCrate];
+			else if (evilType == 2) drawTexture = Main.itemTexture[ItemID.CrimsonFishingCrate];
+			Vector2 drawPosition = CalculateDrawPos(pos);
+
+			DrawTextureOnMap(drawTexture, drawPosition);
+		}
+
+		public static int ValidEvilTile(int type)
+		{
+			List<int> validCrimsonTiles = new List<int>()
+			{
+				TileID.CrimsonHardenedSand,
+				TileID.Crimsand,
+				TileID.CrimsonSandstone,
+				TileID.Crimstone,
+				TileID.CrimtaneThorns,
+				TileID.FleshIce,
+				TileID.FleshGrass
+			};
+
+			List<int> validCorruptionTiles = new List<int>()
+			{
+				TileID.Ebonstone,
+				TileID.Ebonsand,
+				TileID.CorruptGrass,
+				TileID.CorruptIce,
+				TileID.CorruptHardenedSand,
+				TileID.CorruptThorns,
+				TileID.CorruptSandstone,
+			};
+
+			if (validCorruptionTiles.Contains(type)) return 1;
+			if (validCrimsonTiles.Contains(type)) return 2;
+			return 0;
+		}
+
+		public static void LocateNearestEvil()
+		{
+			shouldDraw = false;
+			tilePos = new Vector2(0, 0);
+
+			float tileDistance = float.MaxValue;
+			Vector2 nearestTile = new Vector2(0, 0);
+
+			for (int x = (int)(Main.leftWorld / 16); x < (int)(Main.rightWorld / 16); x++)
+			{
+				for (int y = (int)(Main.topWorld / 16); y < (int)(Main.bottomWorld / 16); y++)
+				{
+					if (x >= Main.LocalPlayer.position.X) break;
+					if (!Main.tile[x, y].active() || ValidEvilTile(Main.tile[x, y].type) == 0) continue;
+					float currentTileDistance = Vector2.Distance(new Vector2(x, y).ToWorldCoordinates(), Main.LocalPlayer.Center);
+					if (currentTileDistance < tileDistance)
+					{
+						tileDistance = currentTileDistance;
+						nearestTile = new Vector2(x, y);
+						evilType = ValidEvilTile(Main.tile[x, y].type);
+					}
+				}
+			}
+
+			if (tileDistance != float.MaxValue)
+			{
+				tilePos = nearestTile;
+				shouldDraw = true;
+			}
+			else
+			{
+				shouldDraw = false;
+				tilePos = new Vector2(0, 0);
+				evilType = 0;
+			}
+		}
+		#endregion
+	}
 }
