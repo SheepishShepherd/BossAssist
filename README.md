@@ -1,7 +1,7 @@
 # ![Boss Highlights](banner.png)
-A better checklist has arrived! Featuring:
-
+Plenty of handy features, including:
 * Boss Log UI system
+  * Better boss checklist
   * Boss records
   * Spawn item recipe lookups
   * Loot Table Checklist
