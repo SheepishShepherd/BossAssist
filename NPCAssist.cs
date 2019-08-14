@@ -14,8 +14,6 @@ namespace BossAssist
     {
         public override void NPCLoot(NPC npc)
 		{
-			NetMessage.BroadcastChatMessage(NetworkText.FromLiteral("Something died!"), Colors.RarityPurple);
-
 			if (npc.type == NPCID.DD2Betsy)
             {
                 WorldAssist.downedBetsy = true;
@@ -34,7 +32,7 @@ namespace BossAssist
 					else NetMessage.BroadcastChatMessage(NetworkText.FromLiteral("The " + npc.GetFullNetName().ToString() + " has been destroyed"), Colors.RarityPurple);
 				}
 			}
-            if (CheckForNPCType(npc) && BossAssist.ClientConfig.LimbMessages)
+            if (NPCisLimb(npc) && BossAssist.ClientConfig.LimbMessages)
             {
                 if (npc.type == NPCID.SkeletronHand) partName = "Skeletron Hand";
                 if (Main.netMode == 0) Main.NewText("The " + partName + " is down!", Colors.RarityGreen);
@@ -45,128 +43,248 @@ namespace BossAssist
             // Twins check makes sure the other is not around before counting towards the record
             if (SpecialBossCheck(npc) != -1) // Requires the player to participate in the boss fight //&& npc.playerInteraction[Main.myPlayer]
 			{
-                Player player = Main.LocalPlayer;
-                PlayerAssist modplayer = PlayerAssist.Get(player, mod);
-
-				NetMessage.BroadcastChatMessage(NetworkText.FromLiteral("Pre-record establishing check"), Colors.RarityPurple);
-
-				int recordAttempt = modplayer.RecordTimers[SpecialBossCheck(npc)]; // Trying to set a new record
-                int currentRecord = player.GetModPlayer<PlayerAssist>().AllBossRecords[SpecialBossCheck(npc)].stat.fightTime;
-                int worstRecord = player.GetModPlayer<PlayerAssist>().AllBossRecords[SpecialBossCheck(npc)].stat.fightTime2;
-
-                player.GetModPlayer<PlayerAssist>().AllBossRecords[SpecialBossCheck(npc)].stat.fightTimeL = recordAttempt;
-
-                int brinkAttempt = modplayer.BrinkChecker[SpecialBossCheck(npc)]; // Trying to set a new record
-                int MaxLife = modplayer.MaxHealth[SpecialBossCheck(npc)];
-                int currentBrink = player.GetModPlayer<PlayerAssist>().AllBossRecords[SpecialBossCheck(npc)].stat.brink2;
-                int worstBrink = player.GetModPlayer<PlayerAssist>().AllBossRecords[SpecialBossCheck(npc)].stat.brink;
-
-                player.GetModPlayer<PlayerAssist>().AllBossRecords[SpecialBossCheck(npc)].stat.brinkL = brinkAttempt;
-                double lastHealth = (double)brinkAttempt / (double)MaxLife;
-                player.GetModPlayer<PlayerAssist>().AllBossRecords[SpecialBossCheck(npc)].stat.brinkPercentL = (int)(lastHealth * 100);
-
-                // Somehow account for "No Hit Bosses"
-
-                int dodgeTimeAttempt = modplayer.DodgeTimer[SpecialBossCheck(npc)];
-                int currentDodgeTime = player.GetModPlayer<PlayerAssist>().AllBossRecords[SpecialBossCheck(npc)].stat.dodgeTime;
-                int dodgeAttempt = modplayer.AttackCounter[SpecialBossCheck(npc)];
-                int currentDodges = player.GetModPlayer<PlayerAssist>().AllBossRecords[SpecialBossCheck(npc)].stat.totalDodges;
-                int worstDodges = player.GetModPlayer<PlayerAssist>().AllBossRecords[SpecialBossCheck(npc)].stat.totalDodges2;
-
-                player.GetModPlayer<PlayerAssist>().AllBossRecords[SpecialBossCheck(npc)].stat.dodgeTimeL = dodgeTimeAttempt;
-                player.GetModPlayer<PlayerAssist>().AllBossRecords[SpecialBossCheck(npc)].stat.totalDodgesL = dodgeAttempt;
-
-                if (EaterOfWorldsCheck(npc))
+				if (EaterOfWorldsCheck(npc))
                 {
 					if (Main.netMode == NetmodeID.SinglePlayer)
 					{
-						player.GetModPlayer<PlayerAssist>().AllBossRecords[SpecialBossCheck(npc)].stat.kills++;
+						Player player = Main.player[Main.myPlayer];
+						CheckRecords(npc, player, PlayerAssist.Get(player, mod));
 					}
 					else
 					{
-						NetMessage.BroadcastChatMessage(NetworkText.FromLiteral("NPC is dead, lets make a packet bois"), Colors.RarityLime);
-						
-						ModPacket packet = mod.GetPacket();
-						packet.Write((byte)BossAssist.MessageType.NewRecord);
-						packet.Write((byte)npc.whoAmI);
-						packet.Write("Kill");
-						packet.Write((byte)1);
-						packet.Send();
+						CheckRecordsMultiplayer(npc, BossAssist.instance);
 					}
-					
-					if (recordAttempt < currentRecord && currentRecord != 0 && worstRecord <= 0)
-                    {
-                        // First make the current record the worst record if no worst record has been made and a new record was made
-                        player.GetModPlayer<PlayerAssist>().AllBossRecords[SpecialBossCheck(npc)].stat.fightTime2 = currentRecord;
-                        //if (Main.netMode != NetmodeID.SinglePlayer) UpdateRecordServerSide(npc, (int)BossStats.RecordID.LongestFightTime, currentRecord);
-                    }
-                    if (recordAttempt < currentRecord || currentRecord <= 0)
-                    {
-                        //The player has beaten their best record, so we have to overwrite the old record with the new one
-                        player.GetModPlayer<PlayerAssist>().AllBossRecords[SpecialBossCheck(npc)].stat.fightTime = recordAttempt;
-                        //if (Main.netMode != NetmodeID.SinglePlayer) UpdateRecordServerSide(npc, (int)BossStats.RecordID.ShortestFightTime, currentRecord);
-                    }
-                    else if (recordAttempt > worstRecord || worstRecord <= 0)
-                    {
-                        //The player has beaten their worst record, so we have to overwrite the old record with the new one
-                        player.GetModPlayer<PlayerAssist>().AllBossRecords[SpecialBossCheck(npc)].stat.fightTime2 = recordAttempt;
-                        //if (Main.netMode != NetmodeID.SinglePlayer) UpdateRecordServerSide(npc, (int)BossStats.RecordID.LongestFightTime, recordAttempt);
-                    }
-
-                    if (brinkAttempt > currentBrink && currentBrink != 0 && worstBrink <= 0)
-                    {
-                        player.GetModPlayer<PlayerAssist>().AllBossRecords[SpecialBossCheck(npc)].stat.brink = currentBrink;
-                        //if (Main.netMode != NetmodeID.SinglePlayer) UpdateRecordServerSide(npc, (int)BossStats.RecordID.BestBrink, currentBrink);
-                    }
-                    if (brinkAttempt > currentBrink || currentBrink <= 0)
-                    {
-                        player.GetModPlayer<PlayerAssist>().AllBossRecords[SpecialBossCheck(npc)].stat.brink2 = brinkAttempt;
-                        //if (Main.netMode != NetmodeID.SinglePlayer) UpdateRecordServerSide(npc, (int)BossStats.RecordID.WorstBrink, brinkAttempt);
-                        double newHealth = (double)brinkAttempt / (double)MaxLife; // Casts may be redundant, but this setup doesn't work without them.
-                        player.GetModPlayer<PlayerAssist>().AllBossRecords[SpecialBossCheck(npc)].stat.brinkPercent2 = (int)(newHealth * 100);
-                        //if (Main.netMode != NetmodeID.SinglePlayer) UpdateRecordServerSide(npc, (int)BossStats.RecordID.WorstBrinkPercent, (int)(newHealth * 100));
-                    }
-                    else if (brinkAttempt < worstBrink || worstBrink <= 0)
-                    {
-                        player.GetModPlayer<PlayerAssist>().AllBossRecords[SpecialBossCheck(npc)].stat.brink = brinkAttempt;
-                        //if (Main.netMode != NetmodeID.SinglePlayer) UpdateRecordServerSide(npc, (int)BossStats.RecordID.BestBrink, brinkAttempt);
-                        double newHealth = (double)brinkAttempt / (double)MaxLife; // Casts may be redundant, but this setup doesn't work without them.
-                        player.GetModPlayer<PlayerAssist>().AllBossRecords[SpecialBossCheck(npc)].stat.brinkPercent = (int)(newHealth * 100);
-                        //if (Main.netMode != NetmodeID.SinglePlayer) UpdateRecordServerSide(npc, (int)BossStats.RecordID.BestBrinkPercent, (int)(newHealth * 100));
-                    }
-                    
-                    if (dodgeTimeAttempt > currentDodgeTime || currentDodgeTime < 0)
-                    {
-                        // There is no "worse record" for this one so just overwrite any better records made
-                        player.GetModPlayer<PlayerAssist>().AllBossRecords[SpecialBossCheck(npc)].stat.dodgeTime = dodgeTimeAttempt;
-                        //if (Main.netMode != NetmodeID.SinglePlayer) UpdateRecordServerSide(npc, (int)BossStats.RecordID.DodgeTime, brinkAttempt);
-                    }
-
-                    if (dodgeAttempt < currentDodges || currentDodges < 0)
-                    {
-                        player.GetModPlayer<PlayerAssist>().AllBossRecords[SpecialBossCheck(npc)].stat.totalDodges = dodgeAttempt;
-                        if (worstDodges == 0) player.GetModPlayer<PlayerAssist>().AllBossRecords[SpecialBossCheck(npc)].stat.totalDodges2 = currentDodges;
-                    }
-                    else if (dodgeAttempt > worstDodges || worstDodges < 0)
-                    {
-                        player.GetModPlayer<PlayerAssist>().AllBossRecords[SpecialBossCheck(npc)].stat.totalDodges2 = dodgeAttempt;
-                    }
-
-                    modplayer.DodgeTimer[SpecialBossCheck(npc)] = 0;
-                    modplayer.AttackCounter[SpecialBossCheck(npc)] = 0;
-
-                    if ((recordAttempt < currentRecord || currentRecord <= 0) || (brinkAttempt > currentBrink || currentBrink <= 0) || (dodgeAttempt < currentDodges || dodgeAttempt <= 0))
-                    {
-                        if (Main.netMode == NetmodeID.Server) NetMessage.SendData(MessageID.SyncPlayer); // Immediately inform clients of new world state.
-                        Rectangle rect = new Rectangle((int)player.position.X, (int)player.position.Y, player.width, player.height);
-                        CombatText.NewText(rect, Color.LightYellow, "New Record!", true);
-                    }
                 }
             }
             base.NPCLoot(npc);
         }
 
-        public static int GetListNum(NPC boss)
+		public void CheckRecords(NPC npc, Player player, PlayerAssist modplayer)
+		{
+			int recordAttempt = modplayer.RecordTimers[SpecialBossCheck(npc)]; // Trying to set a new record
+			int currentRecord = modplayer.AllBossRecords[SpecialBossCheck(npc)].stat.fightTime;
+			int worstRecord = modplayer.AllBossRecords[SpecialBossCheck(npc)].stat.fightTime2;
+
+			modplayer.AllBossRecords[SpecialBossCheck(npc)].stat.fightTimeL = recordAttempt;
+
+			int brinkAttempt = modplayer.BrinkChecker[SpecialBossCheck(npc)]; // Trying to set a new record
+			int MaxLife = modplayer.MaxHealth[SpecialBossCheck(npc)];
+			int currentBrink = modplayer.AllBossRecords[SpecialBossCheck(npc)].stat.brink2;
+			int worstBrink = modplayer.AllBossRecords[SpecialBossCheck(npc)].stat.brink;
+
+			modplayer.AllBossRecords[SpecialBossCheck(npc)].stat.brinkL = brinkAttempt;
+			double lastHealth = (double)brinkAttempt / (double)MaxLife;
+			modplayer.AllBossRecords[SpecialBossCheck(npc)].stat.brinkPercentL = (int)(lastHealth * 100);
+
+			int dodgeTimeAttempt = modplayer.DodgeTimer[SpecialBossCheck(npc)];
+			int currentDodgeTime = modplayer.AllBossRecords[SpecialBossCheck(npc)].stat.dodgeTime;
+			int dodgeAttempt = modplayer.AttackCounter[SpecialBossCheck(npc)];
+			int currentDodges = modplayer.AllBossRecords[SpecialBossCheck(npc)].stat.totalDodges;
+			int worstDodges = modplayer.AllBossRecords[SpecialBossCheck(npc)].stat.totalDodges2;
+
+			modplayer.AllBossRecords[SpecialBossCheck(npc)].stat.dodgeTimeL = dodgeTimeAttempt;
+			modplayer.AllBossRecords[SpecialBossCheck(npc)].stat.totalDodgesL = dodgeAttempt;
+
+			// Increase kill count
+			modplayer.AllBossRecords[SpecialBossCheck(npc)].stat.kills++;
+
+			if (recordAttempt < currentRecord && currentRecord != 0 && worstRecord <= 0)
+			{
+				// First make the current record the worst record if no worst record has been made and a new record was made
+				modplayer.AllBossRecords[SpecialBossCheck(npc)].stat.fightTime2 = currentRecord;
+			}
+			if (recordAttempt < currentRecord || currentRecord <= 0)
+			{
+				//The player has beaten their best record, so we have to overwrite the old record with the new one
+				modplayer.AllBossRecords[SpecialBossCheck(npc)].stat.fightTime = recordAttempt;
+			}
+			else if (recordAttempt > worstRecord || worstRecord <= 0)
+			{
+				//The player has beaten their worst record, so we have to overwrite the old record with the new one
+				modplayer.AllBossRecords[SpecialBossCheck(npc)].stat.fightTime2 = recordAttempt;
+			}
+
+			if (brinkAttempt > currentBrink && currentBrink != 0 && worstBrink <= 0)
+			{
+				modplayer.AllBossRecords[SpecialBossCheck(npc)].stat.brink = currentBrink;
+			}
+			if (brinkAttempt > currentBrink || currentBrink <= 0)
+			{
+				modplayer.AllBossRecords[SpecialBossCheck(npc)].stat.brink2 = brinkAttempt;
+				double newHealth = (double)brinkAttempt / (double)MaxLife; // Casts may be redundant, but this setup doesn't work without them.
+				modplayer.AllBossRecords[SpecialBossCheck(npc)].stat.brinkPercent2 = (int)(newHealth * 100);
+			}
+			else if (brinkAttempt < worstBrink || worstBrink <= 0)
+			{
+				modplayer.AllBossRecords[SpecialBossCheck(npc)].stat.brink = brinkAttempt;
+				double newHealth = (double)brinkAttempt / (double)MaxLife; // Casts may be redundant, but this setup doesn't work without them.
+				modplayer.AllBossRecords[SpecialBossCheck(npc)].stat.brinkPercent = (int)(newHealth * 100);
+			}
+
+			if (dodgeTimeAttempt > currentDodgeTime || currentDodgeTime < 0)
+			{
+				// There is no "worse record" for this one so just overwrite any better records made
+				modplayer.AllBossRecords[SpecialBossCheck(npc)].stat.dodgeTime = dodgeTimeAttempt;
+			}
+
+			if (dodgeAttempt < currentDodges || currentDodges < 0)
+			{
+				modplayer.AllBossRecords[SpecialBossCheck(npc)].stat.totalDodges = dodgeAttempt;
+				if (worstDodges == 0) modplayer.AllBossRecords[SpecialBossCheck(npc)].stat.totalDodges2 = currentDodges;
+			}
+			else if (dodgeAttempt > worstDodges || worstDodges < 0)
+			{
+				modplayer.AllBossRecords[SpecialBossCheck(npc)].stat.totalDodges2 = dodgeAttempt;
+			}
+
+			modplayer.DodgeTimer[SpecialBossCheck(npc)] = 0;
+			modplayer.AttackCounter[SpecialBossCheck(npc)] = 0;
+
+			// If a new record was made, notify the player
+			if ((recordAttempt < currentRecord || currentRecord <= 0) || (brinkAttempt > currentBrink || currentBrink <= 0) || (dodgeAttempt < currentDodges || dodgeAttempt <= 0))
+			{
+				CombatText.NewText(player.getRect(), Color.LightYellow, "New Record!", true);
+			}
+		}
+
+		public void CheckRecordsMultiplayer(NPC npc, BossAssist mod)
+		{
+			for (int i = 0; i < 255; i++)
+			{
+				Player player = Main.player[i];
+				if (player.active && npc.playerInteraction[i])
+				{
+					if (Main.netMode == NetmodeID.Server)
+					{
+						List<BossRecord> list = BossAssist.ServerCollectedRecords[i];
+						BossStats oldRecord = list[SpecialBossCheck(npc)].stat;
+						
+						// Establish the new records for comparing
+
+						BossStats newRecord = new BossStats()
+						{
+							fightTimeL = player.GetModPlayer<PlayerAssist>().RecordTimers[SpecialBossCheck(npc)],
+							totalDodgesL = player.GetModPlayer<PlayerAssist>().AttackCounter[SpecialBossCheck(npc)],
+							dodgeTimeL = player.GetModPlayer<PlayerAssist>().DodgeTimer[SpecialBossCheck(npc)],
+							brinkL = player.GetModPlayer<PlayerAssist>().BrinkChecker[SpecialBossCheck(npc)],
+							
+							brinkPercentL = (int)(((double)player.GetModPlayer<PlayerAssist>().BrinkChecker[SpecialBossCheck(npc)] / (double)player.GetModPlayer<PlayerAssist>().MaxHealth[SpecialBossCheck(npc)]) * 100),
+						};
+
+						// Compare the records
+
+						RecordID specificRecord = RecordID.None;
+						oldRecord.kills++;
+
+						if (newRecord.fightTimeL < oldRecord.fightTime)
+						{
+							specificRecord |= RecordID.ShortestFightTime;
+							oldRecord.fightTime = newRecord.fightTime;
+						}
+						if (newRecord.fightTimeL > oldRecord.fightTime2)
+						{
+							specificRecord |= RecordID.LongestFightTime;
+							oldRecord.fightTime2 = newRecord.fightTime2;
+						}
+						oldRecord.fightTimeL = newRecord.fightTimeL;
+
+						if (newRecord.brink2 > oldRecord.brink2)
+						{
+							specificRecord |= RecordID.BestBrink;
+							oldRecord.brink2 = newRecord.brink;
+							oldRecord.brinkPercent2 = newRecord.brinkPercent2;
+						}
+						if (newRecord.brink < oldRecord.brink)
+						{
+							specificRecord |= RecordID.WorstBrink;
+							oldRecord.brink = newRecord.brink;
+							oldRecord.brinkPercent = newRecord.brinkPercent;
+						}
+						oldRecord.brinkL = newRecord.brinkL;
+						oldRecord.brinkPercentL = newRecord.brinkPercentL;
+
+						if (newRecord.totalDodges < oldRecord.totalDodges)
+						{
+							specificRecord |= RecordID.LeastHits;
+							oldRecord.totalDodges = newRecord.totalDodges;
+						}
+						if (newRecord.totalDodges2 > oldRecord.totalDodges2)
+						{
+							specificRecord |= RecordID.MostHits;
+							oldRecord.totalDodges2 = newRecord.totalDodges2;
+						}
+						oldRecord.totalDodgesL = newRecord.totalDodgesL;
+
+						if (newRecord.dodgeTime > oldRecord.dodgeTime)
+						{
+							specificRecord |= RecordID.DodgeTime;
+							oldRecord.dodgeTime = newRecord.dodgeTime;
+						}
+						oldRecord.dodgeTimeL = newRecord.dodgeTimeL;
+
+						// Make the packet
+
+						ModPacket packet = mod.GetPacket();
+						packet.Write((byte)BossAssist.MessageType.RecordUpdate);
+
+						packet.Write((int)specificRecord);
+						packet.Write((int)SpecialBossCheck(npc));
+						// Kills update by 1 automatically
+						// Deaths have to be sent elsewhere (NPCLoot wont run if the player dies)
+
+						if (specificRecord.HasFlag(RecordID.ShortestFightTime)) packet.Write(newRecord.fightTime);
+						if (specificRecord.HasFlag(RecordID.LongestFightTime)) packet.Write(newRecord.fightTime2);
+						packet.Write(newRecord.fightTimeL);
+
+						if (specificRecord.HasFlag(RecordID.BestBrink))
+						{
+							packet.Write(newRecord.brink2);
+							packet.Write(newRecord.brinkPercent2);
+						}
+						if (specificRecord.HasFlag(RecordID.WorstBrink))
+						{
+							packet.Write(newRecord.brink);
+							packet.Write(newRecord.brinkPercent);
+						}
+						packet.Write(newRecord.brinkL);
+						packet.Write(newRecord.brinkPercentL);
+
+						if (specificRecord.HasFlag(RecordID.LeastHits)) packet.Write(newRecord.totalDodges);
+						if (specificRecord.HasFlag(RecordID.MostHits)) packet.Write(newRecord.totalDodges2);
+						packet.Write(newRecord.totalDodgesL);
+						if (specificRecord.HasFlag(RecordID.DodgeTime)) packet.Write(newRecord.dodgeTime);
+						packet.Write(newRecord.dodgeTimeL);
+
+						// ORDER MATTERS
+						packet.Send(toClient: i);
+					}
+				}
+			}
+		}
+
+		internal enum RecordID : int
+		{
+			None,
+			Kills,
+			Deaths,
+			ShortestFightTime,
+			LongestFightTime,
+			DodgeTime,
+			MostHits,
+			LeastHits,
+			BestBrink,
+			BestBrinkPercent,
+			WorstBrink,
+			WorstBrinkPercent,
+
+			LastFightTime,
+			LastDodgeTime,
+			LastHits,
+			LastBrink,
+			LastBrinkPercent
+		}
+
+		public static int GetListNum(NPC boss)
         {
             List<BossInfo> BL = BossAssist.instance.setup.SortedBosses;
             if (boss.type == NPCID.MoonLordCore) return BL.FindIndex(x => x.id == NPCID.MoonLordHead);
@@ -175,7 +293,7 @@ namespace BossAssist
             else return BL.FindIndex(x => x.name == boss.FullName && x.source == boss.modNPC.mod.Name);
         }
 
-        public bool CheckForNPCType(NPC npcType)
+        public bool NPCisLimb(NPC npcType)
         {
             return npcType.type == NPCID.PrimeSaw
                 || npcType.type == NPCID.PrimeLaser

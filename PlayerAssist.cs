@@ -17,12 +17,12 @@ namespace BossAssist
 
         public List<BossRecord> AllBossRecords;
         public List<BossCollection> BossTrophies;
-        
-        public List<int> RecordTimers;
+
+		public List<int> RecordTimers;
         public List<int> BrinkChecker;
         public List<int> MaxHealth;
         public List<bool> DeathTracker;
-        public List<int> DodgeTimer;
+        public List<int> DodgeTimer; // Track the time in-between hits
         public List<int> AttackCounter;
 
         public override void Initialize()
@@ -79,7 +79,6 @@ namespace BossAssist
 
             // Prepare the collections for the player. Putting unloaded bosses in the back and new/existing ones up front
             List<BossCollection> TempCollectionStorage = tag.Get<List<BossCollection>>("Collection");
-			List<BossCollection> TempCollectionStorage2 = tag.Get<List<BossCollection>>("Collection");
 			
 			List<BossCollection> AddedCollections = new List<BossCollection>();
             foreach (BossCollection collection in TempCollectionStorage)
@@ -97,83 +96,7 @@ namespace BossAssist
             clone.BossTrophies = BossTrophies;
             clone.AllBossRecords = AllBossRecords;
         }
-        
-        public override void SyncPlayer(int toWho, int fromWho, bool newPlayer)
-        {
-			ModPacket packet = mod.GetPacket();
-			packet.Write((byte)BossAssist.MessageType.SyncPlayer);
-			packet.Write((byte)player.whoAmI);
-			packet.Send(toWho, fromWho);
-		}
 		
-        public override void SendClientChanges(ModPlayer clientPlayer)
-        {
-			// Here we would sync something like an RPG stat whenever the player changes it.
-			PlayerAssist clone = clientPlayer as PlayerAssist;
-			for (int i = 0; i < AllBossRecords.Count; i++)
-			{
-				if (clone.AllBossRecords[i] != AllBossRecords[i])
-				{
-					// Send a Mod Packet with the changes.
-					var packet = mod.GetPacket();
-					packet.Write((byte)BossAssist.MessageType.RecordUpdate);
-					packet.Write((byte)player.whoAmI);
-					packet.Write(AllBossRecords[i].stat.kills);
-					packet.Write(AllBossRecords[i].stat.deaths);
-					packet.Write(AllBossRecords[i].stat.fightTime);
-					packet.Write(AllBossRecords[i].stat.fightTime2);
-					packet.Write(AllBossRecords[i].stat.fightTimeL);
-					packet.Write(AllBossRecords[i].stat.dodgeTime);
-					packet.Write(AllBossRecords[i].stat.totalDodges);
-					packet.Write(AllBossRecords[i].stat.totalDodges2);
-					packet.Write(AllBossRecords[i].stat.dodgeTimeL);
-					packet.Write(AllBossRecords[i].stat.totalDodgesL);
-					packet.Write(AllBossRecords[i].stat.brink);
-					packet.Write(AllBossRecords[i].stat.brinkPercent);
-					packet.Write(AllBossRecords[i].stat.brink2);
-					packet.Write(AllBossRecords[i].stat.brinkPercent2);
-					packet.Write(AllBossRecords[i].stat.brinkL);
-					packet.Write(AllBossRecords[i].stat.brinkPercentL);
-					packet.Send();
-				}
-			}
-		}
-
-		/*
-
-		public void UpdateRecordServerSide(int fromWho, NPC npc, string recordType, int recordValue)
-		{
-			ModPacket packet = mod.GetPacket(); // Create a packet
-			packet.Write(npc.whoAmI);
-			packet.Write(recordType);
-			packet.Write(recordValue);
-			packet.Send(fromWho); // Send it to the record maker's client?
-
-			NetMessage.BroadcastChatMessage(NetworkText.FromLiteral("Packet Sent"), Colors.RarityPurple);
-		}
-
-		public void ReceiveRecordData(BinaryReader reader, int fromWho)
-		{
-			if (Main.netMode == NetmodeID.MultiplayerClient)
-			{
-				fromWho = reader.ReadInt32();
-			}
-			//someVal = reader.ReadSingle();
-			//someInt = reader.ReadInt32();
-			if (Main.netMode == NetmodeID.Server)
-			{
-				Send(-1, fromWho);
-			}
-			else
-			{
-				PlayerAssist myModPlayer = Main.player[fromWho].GetModPlayer<PlayerAssist>();
-				//myModPlayer.someVal = someVal;
-				//myModPlayer.someInt = someInt;
-			}
-		}
-
-		*/
-
 		public static PlayerAssist Get(Player player, Mod mod)
         {
             return player.GetModPlayer<PlayerAssist>(mod);
@@ -191,12 +114,38 @@ namespace BossAssist
 
         public override void OnEnterWorld(Player player)
         {
+			if (Main.netMode == NetmodeID.MultiplayerClient)
+			{
+				// Essentially to get "BossAssist.ServerCollectedRecords[player.whoAmI] = AllBossRecords;"
+				ModPacket packet = mod.GetPacket();
+				packet.Write((byte)BossAssist.MessageType.SendRecordsToServer);
+				packet.Write(player.whoAmI);
+				for (int i = 0; i < BossAssist.instance.setup.SortedBosses.Count; i++)
+				{
+					packet.Write(AllBossRecords[i].stat.kills);
+					packet.Write(AllBossRecords[i].stat.deaths);
+					packet.Write(AllBossRecords[i].stat.fightTime);
+					packet.Write(AllBossRecords[i].stat.fightTime2);
+					packet.Write(AllBossRecords[i].stat.fightTimeL);
+					packet.Write(AllBossRecords[i].stat.brink2);
+					packet.Write(AllBossRecords[i].stat.brink);
+					packet.Write(AllBossRecords[i].stat.brinkL);
+					packet.Write(AllBossRecords[i].stat.totalDodges);
+					packet.Write(AllBossRecords[i].stat.totalDodges2);
+					packet.Write(AllBossRecords[i].stat.totalDodgesL);
+					packet.Write(AllBossRecords[i].stat.dodgeTime);
+					packet.Write(AllBossRecords[i].stat.dodgeTimeL);
+				}
+				packet.Send(-1);
+			}
+			/*
             if (isNewPlayer)
             {
                 // This wont work in MP, but ill fix that later
                 CombatText.NewText(player.getRect(), Color.LightGreen, "Thanks for playing with Shepherd's mods!!", true);
                 isNewPlayer = false;
             }
+			*/
 			MapAssist.shouldDraw = false;
 			MapAssist.tilePos = new Vector2(0, 0);
 
