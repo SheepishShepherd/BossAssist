@@ -225,7 +225,7 @@ namespace BossAssist
 						// Make the packet
 
 						ModPacket packet = mod.GetPacket();
-						packet.Write((byte)BossAssist.MessageType.RecordUpdate);
+						packet.Write((byte)MessageType.RecordUpdate);
 
 						packet.Write((int)specificRecord);
 						packet.Write((int)SpecialBossCheck(npc));
@@ -260,28 +260,6 @@ namespace BossAssist
 					}
 				}
 			}
-		}
-
-		internal enum RecordID : int
-		{
-			None,
-			Kills,
-			Deaths,
-			ShortestFightTime,
-			LongestFightTime,
-			DodgeTime,
-			MostHits,
-			LeastHits,
-			BestBrink,
-			BestBrinkPercent,
-			WorstBrink,
-			WorstBrinkPercent,
-
-			LastFightTime,
-			LastDodgeTime,
-			LastHits,
-			LastBrink,
-			LastBrinkPercent
 		}
 
 		public static int GetListNum(NPC boss)

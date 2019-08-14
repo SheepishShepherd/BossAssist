@@ -118,25 +118,20 @@ namespace BossAssist
 			{
 				// Essentially to get "BossAssist.ServerCollectedRecords[player.whoAmI] = AllBossRecords;"
 				ModPacket packet = mod.GetPacket();
-				packet.Write((byte)BossAssist.MessageType.SendRecordsToServer);
-				packet.Write(player.whoAmI);
+				packet.Write((byte)MessageType.SendRecordsToServer);
 				for (int i = 0; i < BossAssist.instance.setup.SortedBosses.Count; i++)
 				{
 					packet.Write(AllBossRecords[i].stat.kills);
 					packet.Write(AllBossRecords[i].stat.deaths);
 					packet.Write(AllBossRecords[i].stat.fightTime);
 					packet.Write(AllBossRecords[i].stat.fightTime2);
-					packet.Write(AllBossRecords[i].stat.fightTimeL);
 					packet.Write(AllBossRecords[i].stat.brink2);
 					packet.Write(AllBossRecords[i].stat.brink);
-					packet.Write(AllBossRecords[i].stat.brinkL);
 					packet.Write(AllBossRecords[i].stat.totalDodges);
 					packet.Write(AllBossRecords[i].stat.totalDodges2);
-					packet.Write(AllBossRecords[i].stat.totalDodgesL);
 					packet.Write(AllBossRecords[i].stat.dodgeTime);
-					packet.Write(AllBossRecords[i].stat.dodgeTimeL);
 				}
-				packet.Send(-1);
+				packet.Send();
 			}
 			/*
             if (isNewPlayer)

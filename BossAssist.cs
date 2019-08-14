@@ -215,43 +215,38 @@ namespace BossAssist
 			switch (msgType)
 			{
 				case MessageType.SendRecordsToServer:
-					int playerNum  = reader.ReadInt32();
 					for (int i = 0; i < instance.setup.SortedBosses.Count; i++)
 					{
-						ServerCollectedRecords[playerNum][i].stat.kills = reader.ReadInt32();
-						ServerCollectedRecords[playerNum][i].stat.deaths = reader.ReadInt32();
-						ServerCollectedRecords[playerNum][i].stat.fightTime = reader.ReadInt32();
-						ServerCollectedRecords[playerNum][i].stat.fightTime2 = reader.ReadInt32();
-						ServerCollectedRecords[playerNum][i].stat.fightTimeL = reader.ReadInt32();
-						ServerCollectedRecords[playerNum][i].stat.brink2 = reader.ReadInt32();
-						ServerCollectedRecords[playerNum][i].stat.brink = reader.ReadInt32();
-						ServerCollectedRecords[playerNum][i].stat.brinkL = reader.ReadInt32();
-						ServerCollectedRecords[playerNum][i].stat.totalDodges = reader.ReadInt32();
-						ServerCollectedRecords[playerNum][i].stat.totalDodges2 = reader.ReadInt32();
-						ServerCollectedRecords[playerNum][i].stat.totalDodgesL = reader.ReadInt32();
-						ServerCollectedRecords[playerNum][i].stat.dodgeTime = reader.ReadInt32();
-						ServerCollectedRecords[playerNum][i].stat.dodgeTimeL = reader.ReadInt32();
+						ServerCollectedRecords[whoAmI][i].stat.kills = reader.ReadInt32();
+						ServerCollectedRecords[whoAmI][i].stat.deaths = reader.ReadInt32();
+						ServerCollectedRecords[whoAmI][i].stat.fightTime = reader.ReadInt32();
+						ServerCollectedRecords[whoAmI][i].stat.fightTime2 = reader.ReadInt32();
+						ServerCollectedRecords[whoAmI][i].stat.brink2 = reader.ReadInt32();
+						ServerCollectedRecords[whoAmI][i].stat.brink = reader.ReadInt32();
+						ServerCollectedRecords[whoAmI][i].stat.totalDodges = reader.ReadInt32();
+						ServerCollectedRecords[whoAmI][i].stat.totalDodges2 = reader.ReadInt32();
+						ServerCollectedRecords[whoAmI][i].stat.dodgeTime = reader.ReadInt32();
 					}
 					break;
 				case MessageType.RecordUpdate:
 					//Server just sent us information about what boss just got killed and its records shall be updated
 					//Since we did packet.Send(toClient: i);, you can use LocalPlayer here
-					NPCAssist.RecordID brokenRecords = (NPCAssist.RecordID)reader.ReadInt32();
+					RecordID brokenRecords = (RecordID)reader.ReadInt32();
 					int npcPos = reader.ReadInt32();
 					BossStats specificRecord = Main.LocalPlayer.GetModPlayer<PlayerAssist>().AllBossRecords[npcPos].stat;
 					//RecordID.Kills will just be increased by 1 automatically
 					specificRecord.kills++;
 
-					if (brokenRecords.HasFlag(NPCAssist.RecordID.ShortestFightTime)) specificRecord.fightTime = reader.ReadInt32();
-					if (brokenRecords.HasFlag(NPCAssist.RecordID.LongestFightTime)) specificRecord.fightTime2 = reader.ReadInt32();
+					if (brokenRecords.HasFlag(RecordID.ShortestFightTime)) specificRecord.fightTime = reader.ReadInt32();
+					if (brokenRecords.HasFlag(RecordID.LongestFightTime)) specificRecord.fightTime2 = reader.ReadInt32();
 					specificRecord.fightTimeL = reader.ReadInt32();
 
-					if (brokenRecords.HasFlag(NPCAssist.RecordID.BestBrink))
+					if (brokenRecords.HasFlag(RecordID.BestBrink))
 					{
 						specificRecord.brink2 = reader.ReadInt32();
 						specificRecord.brinkPercent2 = reader.ReadInt32();
 					}
-					if (brokenRecords.HasFlag(NPCAssist.RecordID.WorstBrink))
+					if (brokenRecords.HasFlag(RecordID.WorstBrink))
 					{
 						specificRecord.brink = reader.ReadInt32();
 						specificRecord.brinkPercent = reader.ReadInt32();
@@ -259,23 +254,45 @@ namespace BossAssist
 					specificRecord.brinkL = reader.ReadInt32();
 					specificRecord.brinkPercentL = reader.ReadInt32();
 
-					if (brokenRecords.HasFlag(NPCAssist.RecordID.LeastHits)) specificRecord.totalDodges = reader.ReadInt32();
-					if (brokenRecords.HasFlag(NPCAssist.RecordID.MostHits)) specificRecord.totalDodges2 = reader.ReadInt32();
+					if (brokenRecords.HasFlag(RecordID.LeastHits)) specificRecord.totalDodges = reader.ReadInt32();
+					if (brokenRecords.HasFlag(RecordID.MostHits)) specificRecord.totalDodges2 = reader.ReadInt32();
 					specificRecord.totalDodgesL = reader.ReadInt32();
-					if (brokenRecords.HasFlag(NPCAssist.RecordID.DodgeTime)) specificRecord.dodgeTime = reader.ReadInt32();
+					if (brokenRecords.HasFlag(RecordID.DodgeTime)) specificRecord.dodgeTime = reader.ReadInt32();
 					specificRecord.dodgeTimeL = reader.ReadInt32();
 
 					// ORDER MATTERS FOR reader)
 					break;
 			}
 		}
+	}
+	
+	internal enum MessageType : byte
+	{
+		SendRecordsToServer,
+		RecordUpdate,
+		DeathCount
+	}
 
-		internal enum MessageType : byte
-		{
-			SendRecordsToServer,
-			RecordUpdate,
-			DeathCount
-		}
+	internal enum RecordID : int
+	{
+		None,
+		Kills,
+		Deaths,
+		ShortestFightTime,
+		LongestFightTime,
+		DodgeTime,
+		MostHits,
+		LeastHits,
+		BestBrink,
+		BestBrinkPercent,
+		WorstBrink,
+		WorstBrinkPercent,
+
+		LastFightTime,
+		LastDodgeTime,
+		LastHits,
+		LastBrink,
+		LastBrinkPercent
 	}
 }
  
