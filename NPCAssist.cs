@@ -1,6 +1,7 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using ReLogic.Graphics;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Terraria;
@@ -41,11 +42,11 @@ namespace BossAssist
             
             // Setting a record for fastest boss kill, and counting boss kills
             // Twins check makes sure the other is not around before counting towards the record
-            if (SpecialBossCheck(npc) != -1) // Requires the player to participate in the boss fight //&& npc.playerInteraction[Main.myPlayer]
+            if (SpecialBossCheck(npc) != -1) // Requires the player to participate in the boss fight
 			{
 				if (EaterOfWorldsCheck(npc))
                 {
-					if (Main.netMode == NetmodeID.SinglePlayer)
+					if (Main.netMode == NetmodeID.SinglePlayer && npc.playerInteraction[Main.myPlayer])
 					{
 						Player player = Main.player[Main.myPlayer];
 						CheckRecords(npc, player, PlayerAssist.Get(player, mod));
@@ -56,7 +57,6 @@ namespace BossAssist
 					}
                 }
             }
-            base.NPCLoot(npc);
         }
 
 		public void CheckRecords(NPC npc, Player player, PlayerAssist modplayer)
@@ -152,112 +152,115 @@ namespace BossAssist
 			for (int i = 0; i < 255; i++)
 			{
 				Player player = Main.player[i];
-				if (player.active && npc.playerInteraction[i])
+				if (!player.active || !npc.playerInteraction[i]) continue; // Players must be active AND have interacted with the boss
+				if (Main.netMode == NetmodeID.Server)
 				{
-					if (Main.netMode == NetmodeID.Server)
+					Console.WriteLine("<<<<<<<<<<<<<<<<<<< Starting the Server NPCLoot stuff");
+					List<BossStats> list = BossAssist.ServerCollectedRecords[i];
+					BossStats oldRecord = list[SpecialBossCheck(npc)];
+
+					// Establish the new records for comparing
+
+					BossStats newRecord = new BossStats()
 					{
-						List<BossRecord> list = BossAssist.ServerCollectedRecords[i];
-						BossStats oldRecord = list[SpecialBossCheck(npc)].stat;
-						
-						// Establish the new records for comparing
-
-						BossStats newRecord = new BossStats()
-						{
-							fightTimeL = player.GetModPlayer<PlayerAssist>().RecordTimers[SpecialBossCheck(npc)],
-							totalDodgesL = player.GetModPlayer<PlayerAssist>().AttackCounter[SpecialBossCheck(npc)],
-							dodgeTimeL = player.GetModPlayer<PlayerAssist>().DodgeTimer[SpecialBossCheck(npc)],
-							brinkL = player.GetModPlayer<PlayerAssist>().BrinkChecker[SpecialBossCheck(npc)],
+						fightTimeL = player.GetModPlayer<PlayerAssist>().RecordTimers[SpecialBossCheck(npc)],
+						totalDodgesL = player.GetModPlayer<PlayerAssist>().AttackCounter[SpecialBossCheck(npc)],
+						dodgeTimeL = player.GetModPlayer<PlayerAssist>().DodgeTimer[SpecialBossCheck(npc)],
+						brinkL = player.GetModPlayer<PlayerAssist>().BrinkChecker[SpecialBossCheck(npc)],
 							
-							brinkPercentL = (int)(((double)player.GetModPlayer<PlayerAssist>().BrinkChecker[SpecialBossCheck(npc)] / (double)player.GetModPlayer<PlayerAssist>().MaxHealth[SpecialBossCheck(npc)]) * 100),
-						};
+						brinkPercentL = (int)(((double)player.GetModPlayer<PlayerAssist>().BrinkChecker[SpecialBossCheck(npc)] / (double)player.GetModPlayer<PlayerAssist>().MaxHealth[SpecialBossCheck(npc)]) * 100),
+					};
 
-						// Compare the records
+					Console.WriteLine("<<<<<<<<<<<<<<<<<<< Declared new and old records");
 
-						RecordID specificRecord = RecordID.None;
-						oldRecord.kills++;
+					// Compare the records
 
-						if (newRecord.fightTimeL < oldRecord.fightTime)
-						{
-							specificRecord |= RecordID.ShortestFightTime;
-							oldRecord.fightTime = newRecord.fightTime;
-						}
-						if (newRecord.fightTimeL > oldRecord.fightTime2)
-						{
-							specificRecord |= RecordID.LongestFightTime;
-							oldRecord.fightTime2 = newRecord.fightTime2;
-						}
-						oldRecord.fightTimeL = newRecord.fightTimeL;
+					RecordID specificRecord = RecordID.None;
 
-						if (newRecord.brink2 > oldRecord.brink2)
-						{
-							specificRecord |= RecordID.BestBrink;
-							oldRecord.brink2 = newRecord.brink;
-							oldRecord.brinkPercent2 = newRecord.brinkPercent2;
-						}
-						if (newRecord.brink < oldRecord.brink)
-						{
-							specificRecord |= RecordID.WorstBrink;
-							oldRecord.brink = newRecord.brink;
-							oldRecord.brinkPercent = newRecord.brinkPercent;
-						}
-						oldRecord.brinkL = newRecord.brinkL;
-						oldRecord.brinkPercentL = newRecord.brinkPercentL;
-
-						if (newRecord.totalDodges < oldRecord.totalDodges)
-						{
-							specificRecord |= RecordID.LeastHits;
-							oldRecord.totalDodges = newRecord.totalDodges;
-						}
-						if (newRecord.totalDodges2 > oldRecord.totalDodges2)
-						{
-							specificRecord |= RecordID.MostHits;
-							oldRecord.totalDodges2 = newRecord.totalDodges2;
-						}
-						oldRecord.totalDodgesL = newRecord.totalDodgesL;
-
-						if (newRecord.dodgeTime > oldRecord.dodgeTime)
-						{
-							specificRecord |= RecordID.DodgeTime;
-							oldRecord.dodgeTime = newRecord.dodgeTime;
-						}
-						oldRecord.dodgeTimeL = newRecord.dodgeTimeL;
-
-						// Make the packet
-
-						ModPacket packet = mod.GetPacket();
-						packet.Write((byte)MessageType.RecordUpdate);
-
-						packet.Write((int)specificRecord);
-						packet.Write((int)SpecialBossCheck(npc));
-						// Kills update by 1 automatically
-						// Deaths have to be sent elsewhere (NPCLoot wont run if the player dies)
-
-						if (specificRecord.HasFlag(RecordID.ShortestFightTime)) packet.Write(newRecord.fightTime);
-						if (specificRecord.HasFlag(RecordID.LongestFightTime)) packet.Write(newRecord.fightTime2);
-						packet.Write(newRecord.fightTimeL);
-
-						if (specificRecord.HasFlag(RecordID.BestBrink))
-						{
-							packet.Write(newRecord.brink2);
-							packet.Write(newRecord.brinkPercent2);
-						}
-						if (specificRecord.HasFlag(RecordID.WorstBrink))
-						{
-							packet.Write(newRecord.brink);
-							packet.Write(newRecord.brinkPercent);
-						}
-						packet.Write(newRecord.brinkL);
-						packet.Write(newRecord.brinkPercentL);
-
-						if (specificRecord.HasFlag(RecordID.LeastHits)) packet.Write(newRecord.totalDodges);
-						if (specificRecord.HasFlag(RecordID.MostHits)) packet.Write(newRecord.totalDodges2);
-						packet.Write(newRecord.totalDodgesL);
-						if (specificRecord.HasFlag(RecordID.DodgeTime)) packet.Write(newRecord.dodgeTime);
-						packet.Write(newRecord.dodgeTimeL);
-
-						// ORDER MATTERS
-						packet.Send(toClient: i);
+					if (newRecord.fightTimeL < oldRecord.fightTime)
+					{
+						specificRecord |= RecordID.ShortestFightTime;
+						BossAssist.ServerCollectedRecords[i][SpecialBossCheck(npc)].fightTime = newRecord.fightTime;
 					}
+					if (newRecord.fightTimeL > oldRecord.fightTime2)
+					{
+						specificRecord |= RecordID.LongestFightTime;
+						BossAssist.ServerCollectedRecords[i][SpecialBossCheck(npc)].fightTime2 = newRecord.fightTime2;
+					}
+					BossAssist.ServerCollectedRecords[i][SpecialBossCheck(npc)].fightTimeL = newRecord.fightTimeL;
+
+					if (newRecord.brink2 > oldRecord.brink2)
+					{
+						specificRecord |= RecordID.BestBrink;
+						BossAssist.ServerCollectedRecords[i][SpecialBossCheck(npc)].brink2 = newRecord.brink;
+						BossAssist.ServerCollectedRecords[i][SpecialBossCheck(npc)].brinkPercent2 = newRecord.brinkPercent2;
+					}
+					if (newRecord.brink < oldRecord.brink)
+					{
+						specificRecord |= RecordID.WorstBrink;
+						BossAssist.ServerCollectedRecords[i][SpecialBossCheck(npc)].brink = newRecord.brink;
+						BossAssist.ServerCollectedRecords[i][SpecialBossCheck(npc)].brinkPercent = newRecord.brinkPercent;
+					}
+					BossAssist.ServerCollectedRecords[i][SpecialBossCheck(npc)].brinkL = newRecord.brinkL;
+					BossAssist.ServerCollectedRecords[i][SpecialBossCheck(npc)].brinkPercentL = newRecord.brinkPercentL;
+
+					if (newRecord.totalDodges < oldRecord.totalDodges)
+					{
+						specificRecord |= RecordID.LeastHits;
+						BossAssist.ServerCollectedRecords[i][SpecialBossCheck(npc)].totalDodges = newRecord.totalDodges;
+					}
+					if (newRecord.totalDodges2 > oldRecord.totalDodges2)
+					{
+						specificRecord |= RecordID.MostHits;
+						BossAssist.ServerCollectedRecords[i][SpecialBossCheck(npc)].totalDodges2 = newRecord.totalDodges2;
+					}
+					BossAssist.ServerCollectedRecords[i][SpecialBossCheck(npc)].totalDodgesL = newRecord.totalDodgesL;
+
+					if (newRecord.dodgeTime > oldRecord.dodgeTime)
+					{
+						specificRecord |= RecordID.DodgeTime;
+						BossAssist.ServerCollectedRecords[i][SpecialBossCheck(npc)].dodgeTime = newRecord.dodgeTime;
+					}
+					BossAssist.ServerCollectedRecords[i][SpecialBossCheck(npc)].dodgeTimeL = newRecord.dodgeTimeL;
+
+					Console.WriteLine("<<<<<<<<<<<<<<<<<<< Updated recrods apporiately");
+					// Make the packet
+
+					ModPacket packet = mod.GetPacket();
+					packet.Write((byte)MessageType.RecordUpdate);
+
+					packet.Write((int)specificRecord);
+					packet.Write(SpecialBossCheck(npc));
+					// Kills update by 1 automatically
+					// Deaths have to be sent elsewhere (NPCLoot wont run if the player dies)
+
+					if (specificRecord.HasFlag(RecordID.ShortestFightTime)) packet.Write(newRecord.fightTime);
+					if (specificRecord.HasFlag(RecordID.LongestFightTime)) packet.Write(newRecord.fightTime2);
+					packet.Write(newRecord.fightTimeL);
+
+					if (specificRecord.HasFlag(RecordID.BestBrink))
+					{
+						packet.Write(newRecord.brink2);
+						packet.Write(newRecord.brinkPercent2);
+					}
+					if (specificRecord.HasFlag(RecordID.WorstBrink))
+					{
+						packet.Write(newRecord.brink);
+						packet.Write(newRecord.brinkPercent);
+					}
+					packet.Write(newRecord.brinkL);
+					packet.Write(newRecord.brinkPercentL);
+
+					if (specificRecord.HasFlag(RecordID.LeastHits)) packet.Write(newRecord.totalDodges);
+					if (specificRecord.HasFlag(RecordID.MostHits)) packet.Write(newRecord.totalDodges2);
+					packet.Write(newRecord.totalDodgesL);
+					if (specificRecord.HasFlag(RecordID.DodgeTime)) packet.Write(newRecord.dodgeTime);
+					packet.Write(newRecord.dodgeTimeL);
+					Console.WriteLine("<<<<<<<<<<<<<<<<<<< Making Packet");
+
+					// ORDER MATTERS
+					packet.Send(i);
+					Console.WriteLine("<<<<<<<<<<<<<<<<<<< PACKET SENT!");
 				}
 			}
 		}

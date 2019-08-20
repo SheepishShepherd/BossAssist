@@ -9,12 +9,14 @@ using Terraria.GameContent.UI;
 using Terraria.GameContent.UI.Elements;
 using Terraria.GameInput;
 using Terraria.ID;
+using Terraria.Localization;
 using Terraria.ModLoader;
 using Terraria.UI;
 
 /* Patch Notes:
  *   + Added hidden mask feature. Bosses dont show what they look like until defeated
  *   + Upgraded the spawn item tab to contain multiple items and all their recipes (You do not have to change your call, it still works with a singular int)
+ *   + Added the ability to display records in chat (Hopefully along with Multiplayer support)
  */
 
 namespace BossAssist
@@ -161,8 +163,8 @@ namespace BossAssist
         public static bool visible = false;
         public static int timerTrophy = 480;
         public static int headNum = -1;
-
-        public override void Draw(SpriteBatch spriteBatch)
+		
+		public override void Draw(SpriteBatch spriteBatch)
         {
             if (!visible) return;
 					   
@@ -302,7 +304,7 @@ namespace BossAssist
                 Texture2D achievements = ModContent.GetTexture("Terraria/UI/Achievements");
                 BossStats record = Main.LocalPlayer.GetModPlayer<PlayerAssist>().AllBossRecords[BossLogUI.PageNum].stat;
 
-                string recordType = "";
+				string recordType = "";
                 string recordNumbers = "";
                 int achX = 0;
                 int achY = 0;
@@ -329,7 +331,10 @@ namespace BossAssist
                         
                         if (killTimes == 0 && deathTimes == 0) recordNumbers = "Unchallenged!";
                         else recordNumbers = killTimes + " kills / " + deathTimes + " deaths";
-                    }
+
+						SubpageButton.displayArray[i] = recordType + ": " + recordNumbers;
+						SubpageButton.displayLastArray[i] = "Victories: " + killTimes;
+					}
                     else if (i == 1)
                     {
                         recordType = "Quickest Victory";
@@ -352,39 +357,53 @@ namespace BossAssist
                                 spriteBatch.Draw(text, exclam, Color.White);
                             }
 
-                            if (BestRecord != 0)
-                            {
-                                double recordOrg = (double)BestRecord / 60;
-                                int recordMin = (int)recordOrg / 60;
-                                int recordSec = (int)recordOrg % 60;
+							if (BestRecord != 0)
+							{
+								double recordOrg = (double)BestRecord / 60;
+								int recordMin = (int)recordOrg / 60;
+								int recordSec = (int)recordOrg % 60;
 
-                                double record2 = (double)LastRecord / 60;
-                                int recordMin2 = (int)record2 / 60;
-                                int recordSec2 = (int)record2 % 60;
+								double record2 = (double)LastRecord / 60;
+								int recordMin2 = (int)record2 / 60;
+								int recordSec2 = (int)record2 % 60;
 
-                                string rec1 = recordOrg.ToString("0.##");
-                                string recSec1 = recordSec.ToString("0.##");
-                                string rec2 = record2.ToString("0.##");
-                                string recSec2 = recordSec2.ToString("0.##");
+								string rec1 = recordOrg.ToString("0.##");
+								string recSec1 = recordSec.ToString("0.##");
+								string rec2 = record2.ToString("0.##");
+								string recSec2 = recordSec2.ToString("0.##");
 
-                                if (rec1.Length > 2 && rec1.Substring(rec1.Length - 2).Contains(".")) rec1 += "0";
-                                if (recSec1.Length > 2 && recSec1.Substring(recSec1.Length - 2).Contains(".")) recSec1 += "0";
-                                if (rec2.Length > 2 && rec2.Substring(rec2.Length - 2).Contains(".")) rec2 += "0";
-                                if (recSec2.Length > 2 && recSec2.Substring(recSec2.Length - 2).Contains(".")) recSec2 += "0";
+								if (rec1.Length > 2 && rec1.Substring(rec1.Length - 2).Contains(".")) rec1 += "0";
+								if (recSec1.Length > 2 && recSec1.Substring(recSec1.Length - 2).Contains(".")) recSec1 += "0";
+								if (rec2.Length > 2 && rec2.Substring(rec2.Length - 2).Contains(".")) rec2 += "0";
+								if (recSec2.Length > 2 && recSec2.Substring(recSec2.Length - 2).Contains(".")) recSec2 += "0";
 
-                                if (recordMin > 0) finalResult += recordMin + "m " + recSec1 + "s";
-                                else finalResult += rec1 + "s";
+								if (recordMin > 0) finalResult += recordMin + "m " + recSec1 + "s";
+								else finalResult += rec1 + "s";
 
-                                if (LastRecord > BestRecord)
-                                {
-                                    if (recordMin2 > 0) finalResult += " [" + recordMin2 + "m " + recSec2 + "s]";
-                                    else finalResult += " [" + rec2 + "s]";
-                                }
+								SubpageButton.displayArray[i] = recordType + ": " + finalResult;
 
-                                recordNumbers = finalResult;
-                            }
-                            else recordNumbers = "No record!";
-                        }
+								if (LastRecord > BestRecord)
+								{
+									string lastFight = "";
+									if (recordMin2 > 0) lastFight += recordMin2 + "m " + recSec2 + "s";
+									else lastFight += rec2 + "s";
+									SubpageButton.displayLastArray[i] = "Fight Time: " + lastFight;
+
+									finalResult += " [" + lastFight + "]";
+								}
+								else
+								{
+									SubpageButton.displayLastArray[i] = "";
+								}
+
+								recordNumbers = finalResult;
+							}
+							else
+							{
+								recordNumbers = "No record!";
+								SubpageButton.displayArray[i] = recordType + ": " + recordNumbers;
+							}
+						}
                         else
                         {
                             achX = 7;
@@ -397,39 +416,56 @@ namespace BossAssist
                                 spriteBatch.Draw(text, exclam, Color.White);
                             }
 
-                            if (WorstRecord != 0)
-                            {
-                                double recordOrg = (double)WorstRecord / 60;
-                                int recordMin = (int)recordOrg / 60;
-                                int recordSec = (int)recordOrg % 60;
+							if (WorstRecord != 0)
+							{
+								double recordOrg = (double)WorstRecord / 60;
+								int recordMin = (int)recordOrg / 60;
+								int recordSec = (int)recordOrg % 60;
 
-                                double record2 = (double)LastRecord / 60;
-                                int recordMin2 = (int)record2 / 60;
-                                int recordSec2 = (int)record2 % 60;
+								double record2 = (double)LastRecord / 60;
+								int recordMin2 = (int)record2 / 60;
+								int recordSec2 = (int)record2 % 60;
 
-                                string rec1 = recordOrg.ToString("0.##");
-                                string recSec1 = recordSec.ToString("0.##");
-                                string rec2 = record2.ToString("0.##");
-                                string recSec2 = recordSec2.ToString("0.##");
+								string rec1 = recordOrg.ToString("0.##");
+								string recSec1 = recordSec.ToString("0.##");
+								string rec2 = record2.ToString("0.##");
+								string recSec2 = recordSec2.ToString("0.##");
 
-                                if (rec1.Length > 2 && rec1.Substring(rec1.Length - 2).Contains(".")) rec1 += "0";
-                                if (recSec1.Length > 2 && recSec1.Substring(recSec1.Length - 2).Contains(".")) recSec1 += "0";
-                                if (rec2.Length > 2 && rec2.Substring(rec2.Length - 2).Contains(".")) rec2 += "0";
-                                if (recSec2.Length > 2 && recSec2.Substring(recSec2.Length - 2).Contains(".")) recSec2 += "0";
+								if (rec1.Length > 2 && rec1.Substring(rec1.Length - 2).Contains(".")) rec1 += "0";
+								if (recSec1.Length > 2 && recSec1.Substring(recSec1.Length - 2).Contains(".")) recSec1 += "0";
+								if (rec2.Length > 2 && rec2.Substring(rec2.Length - 2).Contains(".")) rec2 += "0";
+								if (recSec2.Length > 2 && recSec2.Substring(recSec2.Length - 2).Contains(".")) recSec2 += "0";
 
-                                if (recordMin > 0) finalResult += recordMin + "m " + recSec1 + "s";
-                                else finalResult += rec1 + "s";
-                                
-                                if (LastRecord != -1 && LastRecord != WorstRecord)
-                                {
-                                    if (recordMin2 > 0) finalResult += " [" + recordMin2 + "m " + recSec2 + "s]";
-                                    else finalResult += " [" + rec2 + "s]";
-                                }
+								if (recordMin > 0) finalResult += recordMin + "m " + recSec1 + "s";
+								else finalResult += rec1 + "s";
 
-                                recordNumbers = finalResult;
-                            }
-                            else recordNumbers = "No record!";
-                        }
+								SubpageButton.displayArray[i] = recordType + ": " + finalResult;
+
+								string lastFight = "";
+
+								if (LastRecord != -1)
+								{
+									if (recordMin2 > 0)
+									{
+										lastFight = "Fight Time: " + recordMin2 + "m " + recSec2 + "s";
+										SubpageButton.displayLastArray[i] = "";
+										if (LastRecord != WorstRecord) finalResult += " [" + recordMin2 + "m " + recSec2 + "s]";
+									}
+									else
+									{
+										lastFight = "Fight Time: " + rec2 + "s";
+										if (LastRecord != WorstRecord) finalResult += " [" + rec2 + "s]";
+									}
+								}
+
+								recordNumbers = finalResult;
+							}
+							else
+							{
+								recordNumbers = "No record!";
+								SubpageButton.displayArray[i] = recordType + ": " + recordNumbers;
+							}
+						}
                     }
                     else if (i == 2)
                     {
@@ -455,17 +491,26 @@ namespace BossAssist
                             }
 
                             string finalResult = "";
-                            if (BestRecord != 0)
-                            {
-                                finalResult += BestRecord + " (" + BestPercent + "%)";
-                                if (LastRecord != BestRecord && LastRecord != -1)
-                                {
-                                    finalResult += " [" + LastRecord + " (" + LastPercent + "%)]";
-                                }
-                                recordNumbers = finalResult;
-                            }
-                            else recordNumbers = "No record!";
-                        }
+							string lastFight = "";
+							if (BestRecord != 0)
+							{
+								finalResult += BestRecord + " (" + BestPercent + "%)";
+								SubpageButton.displayArray[i] = recordType + ": " + finalResult;
+								if (LastRecord != BestRecord && LastRecord != -1)
+								{
+									lastFight = "Lowest Health: " + LastRecord + " (" + LastPercent + "%)";
+									if (LastRecord != BestRecord) finalResult += " [" + LastRecord + " (" + LastPercent + "%)]";
+								}
+								recordNumbers = finalResult;
+							}
+							else
+							{
+								recordNumbers = "No record!";
+								SubpageButton.displayArray[i] = recordType + ": " + recordNumbers;
+							}
+
+							SubpageButton.displayLastArray[i] = lastFight;
+						}
                         else
                         {
                             achX = 6;
@@ -479,17 +524,26 @@ namespace BossAssist
                             }
 
                             string finalResult = "";
-                            if (WorstRecord != 0)
-                            {
-                                finalResult += WorstRecord + " (" + WorstPercent + "%)";
-                                if (LastRecord != WorstRecord && LastRecord != -1)
-                                {
-                                    finalResult += " [" + LastRecord + " (" + LastPercent + "%)]";
-                                }
-                                recordNumbers = finalResult;
-                            }
-                            else recordNumbers = "No record!";
-                        }
+							string lastFight = "";
+							if (WorstRecord != 0)
+							{
+								finalResult += WorstRecord + " (" + WorstPercent + "%)";
+								SubpageButton.displayArray[i] = recordType + ": " + finalResult;
+								if (LastRecord != -1)
+								{
+									lastFight = "Lowest Health: " + LastRecord + " (" + LastPercent + "%)";
+									if (LastRecord != WorstRecord) finalResult += " [" + LastRecord + " (" + LastPercent + "%)" + "]";
+								}
+								recordNumbers = finalResult;
+							}
+							else
+							{
+								recordNumbers = "No record!";
+								SubpageButton.displayArray[i] = recordType + ": " + recordNumbers;
+							}
+
+							SubpageButton.displayLastArray[i] = lastFight;
+						}
                     }
                     else if (i == 3)
                     {
@@ -515,11 +569,18 @@ namespace BossAssist
                                 Rectangle exclam = new Rectangle((int)GetInnerDimensions().X + 225, (int)GetInnerDimensions().Y + 332, text.Width, text.Height);
                                 spriteBatch.Draw(text, exclam, Color.White);
                             }
-
+							
                             if (timer == 0 && low == 0 && high == 0) recordNumbers = "No record!";
-                            else if (low != last && last != -1) recordNumbers = low + " (" + timerOutput + "s)" + " [" + last + "]";
-                            else recordNumbers = low + " (" + timerOutput + "s)";
-                        }
+							else recordNumbers = low + " (" + timerOutput + "s)";
+							SubpageButton.displayArray[i] = recordType + ": " + recordNumbers;
+
+							if (last != -1)
+							{
+								if (low != last) recordNumbers += " [" + last + "]";
+								SubpageButton.displayLastArray[i] = "Times Hit: " + last;
+							}
+							else SubpageButton.displayLastArray[i] = "";
+						}
                         else
                         {
                             achX = 4;
@@ -532,17 +593,24 @@ namespace BossAssist
                                 spriteBatch.Draw(text, exclam, Color.White);
                             }
 
-                            if (high == 0) recordNumbers = "No record!";
-                            else if (high != last && last != -1) recordNumbers = high + " (" + timerOutput + "s)" + " [" + last + "]";
-                            else recordNumbers = high + " (" + timerOutput + "s)";
-                        }
+							if (high == 0) recordNumbers = "No record!";
+							else recordNumbers = high + " (" + timerOutput + "s)";
+							SubpageButton.displayArray[i] = recordType + ": " + recordNumbers;
+
+							if (last != -1)
+							{
+								if (high != last) recordNumbers = high + " (" + timerOutput + "s)" + " [" + last + "]";
+								SubpageButton.displayLastArray[i] = "Times Hit: " + last;
+							}
+							else SubpageButton.displayLastArray[i] = "";
+						}
                     }
 
                     Rectangle posRect = new Rectangle(pageRect.X, pageRect.Y + 100 + (75 * i), 64, 64);
                     Rectangle cutRect = new Rectangle(66 * achX, 66 * achY, 64, 64);
                     spriteBatch.Draw(achievements, posRect, cutRect, Color.White);
-                    
-                    Vector2 stringAdjust = Main.fontMouseText.MeasureString(recordType);
+					
+					Vector2 stringAdjust = Main.fontMouseText.MeasureString(recordType);
                     Vector2 pos = new Vector2(GetInnerDimensions().X + (GetInnerDimensions().Width / 2 - 45) - (stringAdjust.X / 3), GetInnerDimensions().Y + 110 + i * 75);
                     Utils.DrawBorderString(spriteBatch, recordType, pos, Color.Goldenrod);
 
@@ -550,7 +618,7 @@ namespace BossAssist
                     pos = new Vector2(GetInnerDimensions().X + (GetInnerDimensions().Width / 2 - 45) - (stringAdjust.X / 3), GetInnerDimensions().Y + 135 + i * 75);
                     Utils.DrawBorderString(spriteBatch, recordNumbers, pos, Color.White);
                 }
-            }
+			}
 
             if (Id == "PageTwo" && BossLogUI.PageNum >= 0 && BossLogUI.SubPageNum == 1)
             {
@@ -1097,14 +1165,21 @@ namespace BossAssist
     {
         string buttonString;
 
-        public SubpageButton(string type)
+		public static string[] displayArray = new string[4];
+		public static string[] displayLastArray = new string[4];
+		bool displayRecord = true; // To prevent multiple messages from accuring by holding down click
+		int recordCooldown = 0; // Allow only one display every 5 seconds
+
+		public SubpageButton(string type)
         {
             buttonString = type;
         }
 
         public override void Draw(SpriteBatch spriteBatch)
-        {
-            BackgroundColor = Color.Brown;
+		{
+			if (recordCooldown > 0) recordCooldown--;
+
+			BackgroundColor = Color.Brown;
             base.DrawSelf(spriteBatch);
 
             CalculatedStyle innerDimensions = GetInnerDimensions();
@@ -1122,20 +1197,82 @@ namespace BossAssist
             {
                 if (BossLogUI.SubPageNum == 0)
                 {
-                    if (!BossLogUI.AltRecords)
-                    {
-                        Rectangle exclamCut = new Rectangle(34 * 3, 0, 32, 32);
-                        spriteBatch.Draw(text, exclamPos, exclamCut, Color.White);
-						if (IsMouseHovering) Main.hoverItemName = "Click to see your 'Worst' records" +
-																"\nRecords are shown as your best compared to your last fight";
-                    }
-                    else
-                    {
-                        Rectangle exclamCut = new Rectangle(0, 0, 32, 32);
-                        spriteBatch.Draw(text, exclamPos, exclamCut, Color.White);
-						if (IsMouseHovering) Main.hoverItemName = "Click to see your 'Best' records" +
-																"\nRecords are shown as your worst compared to your last fight";
-                    }
+					if (Id == "Display Records")
+					{
+						Rectangle exclamCut = new Rectangle(34 * 2, 0, 32, 32);
+						spriteBatch.Draw(text, exclamPos, exclamCut, Color.White);
+						if (IsMouseHovering)
+						{
+							Main.hoverItemName = "Left-click to display your current records";
+							if (displayLastArray[3] != "") Main.hoverItemName += "\nRight-click to display the records of your last fight";
+							if (displayRecord && recordCooldown == 0)
+							{
+								if (Main.mouseLeft)
+								{
+									recordCooldown = 600;
+									displayRecord = false;
+									/*if (Main.dedServ)
+									{
+										NetMessage.BroadcastChatMessage(NetworkText.FromLiteral("[" + Main.LocalPlayer.name + "'s current records with " + BossAssist.instance.setup.SortedBosses[BossLogUI.PageNum].name + "]"), new Color(82, 175, 82));
+										if (displayArray[0] != "") NetMessage.BroadcastChatMessage(NetworkText.FromLiteral(displayArray[0]), new Color(138, 210, 137));
+										if (displayArray[1] != "") NetMessage.BroadcastChatMessage(NetworkText.FromLiteral(displayArray[1]), new Color(138, 210, 137));
+										if (displayArray[2] != "") NetMessage.BroadcastChatMessage(NetworkText.FromLiteral(displayArray[2]), new Color(138, 210, 137));
+										if (displayArray[3] != "") NetMessage.BroadcastChatMessage(NetworkText.FromLiteral(displayArray[3]), new Color(138, 210, 137));
+									}
+									else*/
+									{
+										Main.NewText("[" + Main.LocalPlayer.name + "'s current records with " + BossAssist.instance.setup.SortedBosses[BossLogUI.PageNum].name + "]", new Color(82, 175, 82));
+										if (displayArray[0] != "") Main.NewText(displayArray[0], new Color(138, 210, 137));
+										if (displayArray[1] != "") Main.NewText(displayArray[1], new Color(138, 210, 137));
+										if (displayArray[2] != "") Main.NewText(displayArray[2], new Color(138, 210, 137));
+										if (displayArray[3] != "") Main.NewText(displayArray[3], new Color(138, 210, 137));
+									}
+								}
+								else if (Main.mouseRight && displayLastArray[3] != "")
+								{
+									recordCooldown = 600;
+									displayRecord = false;
+									/*if (Main.dedServ)
+									{
+										NetMessage.BroadcastChatMessage(NetworkText.FromLiteral("[" + Main.LocalPlayer.name + "'s last fight stats with " + BossAssist.instance.setup.SortedBosses[BossLogUI.PageNum].name + "]"), new Color(82, 175, 82));
+										if (displayLastArray[0] != "") NetMessage.BroadcastChatMessage(NetworkText.FromLiteral(displayLastArray[0]), new Color(138, 210, 137));
+										if (displayLastArray[1] != "") NetMessage.BroadcastChatMessage(NetworkText.FromLiteral(displayLastArray[1]), new Color(138, 210, 137));
+										if (displayLastArray[2] != "") NetMessage.BroadcastChatMessage(NetworkText.FromLiteral(displayLastArray[2]), new Color(138, 210, 137));
+										if (displayLastArray[3] != "") NetMessage.BroadcastChatMessage(NetworkText.FromLiteral(displayLastArray[3]), new Color(138, 210, 137));
+									}
+									else*/
+									{
+										Main.NewText("[" + Main.LocalPlayer.name + "'s last fight stats with " + BossAssist.instance.setup.SortedBosses[BossLogUI.PageNum].name + "]", new Color(82, 175, 82));
+										Main.NewText(displayLastArray[0], new Color(138, 210, 137));
+										Main.NewText(displayLastArray[1], new Color(138, 210, 137));
+										Main.NewText(displayLastArray[2], new Color(138, 210, 137));
+										Main.NewText(displayLastArray[3], new Color(138, 210, 137));
+									}
+								}
+							}
+							else if (Main.mouseLeftRelease && Main.mouseRightRelease)
+							{
+								displayRecord = true;
+							}
+						}
+					}
+					else
+					{
+						if (!BossLogUI.AltRecords)
+						{
+							Rectangle exclamCut = new Rectangle(34 * 3, 0, 32, 32);
+							spriteBatch.Draw(text, exclamPos, exclamCut, Color.White);
+							if (IsMouseHovering) Main.hoverItemName = "Click to see your 'Worst' records" +
+																	"\nRecords are shown as your best compared to your last fight";
+						}
+						else
+						{
+							Rectangle exclamCut = new Rectangle(0, 0, 32, 32);
+							spriteBatch.Draw(text, exclamPos, exclamCut, Color.White);
+							if (IsMouseHovering) Main.hoverItemName = "Click to see your 'Best' records" +
+																	"\nRecords are shown as your worst compared to your last fight";
+						}
+					}
                 }
                 else if (BossLogUI.SubPageNum == 2)
                 {
@@ -1154,7 +1291,7 @@ namespace BossAssist
                                                             "\nItems added by other mods may not be on the list!";
                 }
             }
-        }
+		}
     }
 
     class BossLogUI : UIState
@@ -1166,10 +1303,11 @@ namespace BossAssist
         public BossLogPanel PageTwo;
 
         public SubpageButton recordButton;
-        public SubpageButton spawnButton;
+		public SubpageButton spawnButton;
         public SubpageButton lootButton;
         public SubpageButton collectButton;
-        public SubpageButton toolTipButton;
+		public SubpageButton displayRecordButton;
+		public SubpageButton toolTipButton;
         
         public static UIImage[] itemIngredients;
 
@@ -1307,8 +1445,8 @@ namespace BossAssist
             recordButton.Left.Pixels = 0;
             recordButton.Top.Pixels = 15;
             recordButton.OnClick += new MouseEvent(OpenRecord);
-
-            spawnButton = new SubpageButton("Spawn Item");
+			
+			spawnButton = new SubpageButton("Spawn Item");
             spawnButton.Width.Pixels = PageTwo.Width.Pixels / 2 - 24;
             spawnButton.Height.Pixels = 25;
             spawnButton.Left.Pixels = PageTwo.Width.Pixels / 2 - 8;
@@ -1336,7 +1474,13 @@ namespace BossAssist
             toolTipButton.Top.Pixels = 100;
             toolTipButton.OnClick += new MouseEvent(SwapRecordPage);
 
-            bossLogPanel.Append(PageTwo);
+			displayRecordButton = new SubpageButton("Display Records");
+			displayRecordButton.Width.Pixels = 32;
+			displayRecordButton.Height.Pixels = 32;
+			displayRecordButton.Left.Pixels = PageTwo.Width.Pixels - displayRecordButton.Width.Pixels - 30;
+			displayRecordButton.Top.Pixels = 128;
+
+			bossLogPanel.Append(PageTwo);
 
             Append(bossLogPanel);
         }
@@ -1397,7 +1541,7 @@ namespace BossAssist
             bossLogPanel.Append(PageTwo);
             BookUI.visible = true;
             UpdateTableofContents();
-        }
+		}
 
         private void OpenNextBoss(UIMouseEvent evt, UIElement listeningElement)
         {
@@ -1979,9 +2123,7 @@ namespace BossAssist
                 PageTwo.Append(lootButton);
                 PageTwo.Append(collectButton);
                 PageTwo.Append(recordButton);
-            }
-
-			// Also remove stickers
+			}
         }
 
         private void ResetPageButtons()
@@ -1991,8 +2133,9 @@ namespace BossAssist
             PageTwo.RemoveChild(NextPage);
             PageTwo.RemoveChild(CredPage);
             PageTwo.RemoveChild(toolTipButton);
+			PageTwo.RemoveChild(displayRecordButton);
 
-            if (PageNum == -2) PageOne.Append(PrevPage);
+			if (PageNum == -2) PageOne.Append(PrevPage);
             else if (PageNum == -1) PageTwo.Append(NextPage);
             else
             {
@@ -2005,7 +2148,17 @@ namespace BossAssist
                     toolTipButton.Top.Pixels = 86;
                     toolTipButton.OnClick += new MouseEvent(SwapRecordPage);
                     PageTwo.Append(toolTipButton);
-                }
+					if (SubPageNum == 0)
+					{
+						displayRecordButton = new SubpageButton("");
+						displayRecordButton.Width.Pixels = 32;
+						displayRecordButton.Height.Pixels = 32;
+						displayRecordButton.Left.Pixels = PageTwo.Width.Pixels - displayRecordButton.Width.Pixels - 30;
+						displayRecordButton.Top.Pixels = 128;
+						displayRecordButton.Id = "Display Records";
+						PageTwo.Append(displayRecordButton);
+					}
+				}
 
                 PageTwo.Append(NextPage);
                 PageOne.Append(PrevPage);

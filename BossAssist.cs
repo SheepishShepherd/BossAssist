@@ -21,7 +21,7 @@ namespace BossAssist
         public static ModHotKey ToggleBossLog;
 
 		internal static ClientConfiguration ClientConfig;
-		public static List<BossRecord>[] ServerCollectedRecords;
+		public static List<BossStats>[] ServerCollectedRecords;
 
 		internal UserInterface BossLogInterface;
         internal BossLogUI BossLog;
@@ -49,7 +49,15 @@ namespace BossAssist
             setup = new SetupBossList();
 			if (Main.netMode == NetmodeID.Server)
 			{
-				ServerCollectedRecords = new List<BossRecord>[255];
+				ServerCollectedRecords = new List<BossStats>[255];
+				for (int i = 0; i < 255; i++)
+				{
+					ServerCollectedRecords[i] = new List<BossStats>();
+					for (int j = 0; j < instance.setup.SortedBosses.Count; j++)
+					{
+						ServerCollectedRecords[i].Add(new BossStats());
+					}
+				}
 			}
 
 			if (!Main.dedServ)
@@ -215,24 +223,29 @@ namespace BossAssist
 			switch (msgType)
 			{
 				case MessageType.SendRecordsToServer:
+					Console.WriteLine("Sending player records to the server!");
 					for (int i = 0; i < instance.setup.SortedBosses.Count; i++)
 					{
-						ServerCollectedRecords[whoAmI][i].stat.kills = reader.ReadInt32();
-						ServerCollectedRecords[whoAmI][i].stat.deaths = reader.ReadInt32();
-						ServerCollectedRecords[whoAmI][i].stat.fightTime = reader.ReadInt32();
-						ServerCollectedRecords[whoAmI][i].stat.fightTime2 = reader.ReadInt32();
-						ServerCollectedRecords[whoAmI][i].stat.brink2 = reader.ReadInt32();
-						ServerCollectedRecords[whoAmI][i].stat.brink = reader.ReadInt32();
-						ServerCollectedRecords[whoAmI][i].stat.totalDodges = reader.ReadInt32();
-						ServerCollectedRecords[whoAmI][i].stat.totalDodges2 = reader.ReadInt32();
-						ServerCollectedRecords[whoAmI][i].stat.dodgeTime = reader.ReadInt32();
+						ServerCollectedRecords[whoAmI][i].kills = reader.ReadInt32();
+						ServerCollectedRecords[whoAmI][i].deaths = reader.ReadInt32();
+						ServerCollectedRecords[whoAmI][i].fightTime = reader.ReadInt32();
+						ServerCollectedRecords[whoAmI][i].fightTime2 = reader.ReadInt32();
+						ServerCollectedRecords[whoAmI][i].brink2 = reader.ReadInt32();
+						ServerCollectedRecords[whoAmI][i].brink = reader.ReadInt32();
+						ServerCollectedRecords[whoAmI][i].totalDodges = reader.ReadInt32();
+						ServerCollectedRecords[whoAmI][i].totalDodges2 = reader.ReadInt32();
+						ServerCollectedRecords[whoAmI][i].dodgeTime = reader.ReadInt32();
+						
+						Console.WriteLine("Establishing " + Main.player[whoAmI].name + "'s records for " + instance.setup.SortedBosses[i].name + " to the server");
 					}
 					break;
 				case MessageType.RecordUpdate:
+					Main.NewText("Record update packet is being handled");
 					//Server just sent us information about what boss just got killed and its records shall be updated
 					//Since we did packet.Send(toClient: i);, you can use LocalPlayer here
 					RecordID brokenRecords = (RecordID)reader.ReadInt32();
 					int npcPos = reader.ReadInt32();
+
 					BossStats specificRecord = Main.LocalPlayer.GetModPlayer<PlayerAssist>().AllBossRecords[npcPos].stat;
 					//RecordID.Kills will just be increased by 1 automatically
 					specificRecord.kills++;
@@ -260,39 +273,26 @@ namespace BossAssist
 					if (brokenRecords.HasFlag(RecordID.DodgeTime)) specificRecord.dodgeTime = reader.ReadInt32();
 					specificRecord.dodgeTimeL = reader.ReadInt32();
 
-					// ORDER MATTERS FOR reader)
+					Main.NewText(ServerCollectedRecords[Main.myPlayer][0].kills + " / " + ServerCollectedRecords[Main.myPlayer][0].deaths);
+					Main.NewText(ServerCollectedRecords[Main.myPlayer][0].fightTime.ToString());
+					Main.NewText(ServerCollectedRecords[Main.myPlayer][0].brink + "(" + ServerCollectedRecords[Main.myPlayer][0].brinkPercent + ")");
+					Main.NewText(ServerCollectedRecords[Main.myPlayer][0].totalDodges + "(" + ServerCollectedRecords[Main.myPlayer][0].dodgeTime + ")");
+
+					// ORDER MATTERS FOR reader
+					break;
+				case MessageType.DeathCount:
+					Console.WriteLine("Death count packet is being handled");
+					List<BossRecord> deathRecord = Main.LocalPlayer.GetModPlayer<PlayerAssist>().AllBossRecords;
+					int num = reader.ReadInt32();
+					for (int i = 0; i < num; i++)
+					{
+						int npcPos2 = reader.ReadInt32();
+						Console.WriteLine("Recording a death from " + instance.setup.SortedBosses[npcPos2].name);
+						deathRecord[npcPos2].stat.deaths++;
+					}
 					break;
 			}
 		}
-	}
-	
-	internal enum MessageType : byte
-	{
-		SendRecordsToServer,
-		RecordUpdate,
-		DeathCount
-	}
-
-	internal enum RecordID : int
-	{
-		None,
-		Kills,
-		Deaths,
-		ShortestFightTime,
-		LongestFightTime,
-		DodgeTime,
-		MostHits,
-		LeastHits,
-		BestBrink,
-		BestBrinkPercent,
-		WorstBrink,
-		WorstBrinkPercent,
-
-		LastFightTime,
-		LastDodgeTime,
-		LastHits,
-		LastBrink,
-		LastBrinkPercent
 	}
 }
  

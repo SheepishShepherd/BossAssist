@@ -97,27 +97,6 @@ namespace BossAssist
                 { nameof(brinkPercent2), brinkPercent2 }
             };
         }
-
-        internal enum RecordID : int
-        {
-            Kills,
-            Deaths,
-            ShortestFightTime,
-            LongestFightTime,
-            DodgeTime,
-            MostHits,
-            LeastHits,
-            BestBrink,
-            BestBrinkPercent,
-            WorstBrink,
-            WorstBrinkPercent,
-
-            LastFightTime,
-            LastDodgeTime,
-            LastHits,
-            LastBrink,
-            LastBrinkPercent
-        }
     }
 
     public class BossCollection : TagSerializable

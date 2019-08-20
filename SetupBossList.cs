@@ -44,7 +44,21 @@ namespace BossAssist
             if (!ModContent.TextureExists(texture)) texture = "BossAssist/Resources/BossTextures/Boss0";
 			SortedBosses.Add(new BossInfo(val, id, source, name, down, spawn, SortCollectibles(collect), loot, texture));
             SortedBosses.Sort((x, y) => x.progression.CompareTo(y.progression));
-        }
+			Console.ForegroundColor = ConsoleColor.DarkYellow;
+			Console.Write("<<Boss Assist>> ");
+			Console.ForegroundColor = ConsoleColor.DarkGray;
+			Console.Write(source + " has added a boss!");
+			Console.WriteLine();
+			Console.ResetColor();
+			if (BossAssist.ServerCollectedRecords != null)
+			{
+				for (int i = 0; i < 255; i++)
+				{
+					BossAssist.ServerCollectedRecords[i].Add(new BossStats());
+				}
+				// Adding a boss to each player
+			}
+		}
 		
 		/*
 			Didnt work out as I had hoped, not completely sure why, but probably not even necessary

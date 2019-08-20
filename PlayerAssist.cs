@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using Terraria.Localization;
 using Terraria.ID;
 using System.IO;
+using System;
 
 // Bug: ItemLists for loot and collections added in with add loot/collect calls do not get added to saved data
 
@@ -47,13 +48,23 @@ namespace BossAssist
             }
 
             // For being able to complete records in Multiplayer
-            RecordTimers = new List<int>(BossAssist.instance.setup.SortedBosses.Count);
+            RecordTimers = new List<int>();
             BrinkChecker = new List<int>(BossAssist.instance.setup.SortedBosses.Count);
             MaxHealth = new List<int>(BossAssist.instance.setup.SortedBosses.Count);
             DeathTracker = new List<bool>(BossAssist.instance.setup.SortedBosses.Count);
             DodgeTimer = new List<int>(BossAssist.instance.setup.SortedBosses.Count);
             AttackCounter = new List<int>(BossAssist.instance.setup.SortedBosses.Count);
-        }
+
+			foreach (BossInfo boss in BossAssist.instance.setup.SortedBosses)
+			{
+				RecordTimers.Add(0);
+				BrinkChecker.Add(0);
+				MaxHealth.Add(0);
+				DeathTracker.Add(false);
+				DodgeTimer.Add(0);
+				AttackCounter.Add(0);
+			}
+		}
 
         public override TagCompound Save()
         {
@@ -104,16 +115,55 @@ namespace BossAssist
 
         public override void OnRespawn(Player player)
         {
-            for (int i = 0; i < DeathTracker.Count; i++)
-            {
-                if (DeathTracker[i]) Main.LocalPlayer.GetModPlayer<PlayerAssist>().AllBossRecords[i].stat.deaths++;
-                // if (Main.netMode != NetmodeID.SinglePlayer) NPCAssist.UpdateRecordServerSide(AllBossRecords, (int)BossStats.RecordID.Kills, 1);
-                DeathTracker[i] = false;
-            }
+			if (Main.netMode == NetmodeID.SinglePlayer)
+			{
+				for (int i = 0; i < DeathTracker.Count; i++)
+				{
+					if (DeathTracker[i]) Main.LocalPlayer.GetModPlayer<PlayerAssist>().AllBossRecords[i].stat.deaths++;
+					DeathTracker[i] = false;
+				}
+			}
+			if (Main.netMode == NetmodeID.MultiplayerClient)
+			{
+				ModPacket packet = mod.GetPacket();
+				packet.Write((byte)MessageType.DeathCount);
+				int npcsToCount = 0;
+				for (int i = 0; i < DeathTracker.Count; i++)
+				{
+					if (DeathTracker[i]) npcsToCount++;
+				}
+				packet.Write(npcsToCount);
+				for (int i = 0; i < DeathTracker.Count; i++)
+				{
+					if (DeathTracker[i])
+					{
+						packet.Write(i);
+					}
+					DeathTracker[i] = false;
+				}
+				packet.Send();
+			}
         }
 
         public override void OnEnterWorld(Player player)
-        {
+		{
+			RecordTimers = new List<int>(BossAssist.instance.setup.SortedBosses.Count);
+			BrinkChecker = new List<int>(BossAssist.instance.setup.SortedBosses.Count);
+			MaxHealth = new List<int>(BossAssist.instance.setup.SortedBosses.Count);
+			DeathTracker = new List<bool>(BossAssist.instance.setup.SortedBosses.Count);
+			DodgeTimer = new List<int>(BossAssist.instance.setup.SortedBosses.Count);
+			AttackCounter = new List<int>(BossAssist.instance.setup.SortedBosses.Count);
+
+			foreach (BossInfo boss in BossAssist.instance.setup.SortedBosses)
+			{
+				RecordTimers.Add(0);
+				BrinkChecker.Add(0);
+				MaxHealth.Add(0);
+				DeathTracker.Add(false);
+				DodgeTimer.Add(0);
+				AttackCounter.Add(0);
+			}
+
 			if (Main.netMode == NetmodeID.MultiplayerClient)
 			{
 				// Essentially to get "BossAssist.ServerCollectedRecords[player.whoAmI] = AllBossRecords;"
@@ -143,13 +193,6 @@ namespace BossAssist
 			*/
 			MapAssist.shouldDraw = false;
 			MapAssist.tilePos = new Vector2(0, 0);
-
-            RecordTimers = new List<int>(BossAssist.instance.setup.SortedBosses.Count);
-            BrinkChecker = new List<int>(BossAssist.instance.setup.SortedBosses.Count);
-            MaxHealth = new List<int>(BossAssist.instance.setup.SortedBosses.Count);
-            DeathTracker = new List<bool>(BossAssist.instance.setup.SortedBosses.Count);
-            DodgeTimer = new List<int>(BossAssist.instance.setup.SortedBosses.Count);
-            AttackCounter = new List<int>(BossAssist.instance.setup.SortedBosses.Count);
         }
 
         public override void OnHitByNPC(NPC npc, int damage, bool crit)
@@ -187,5 +230,5 @@ namespace BossAssist
                 }
             }
         }
-    }
+	}
 }
