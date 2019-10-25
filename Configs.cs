@@ -92,12 +92,7 @@ namespace BossAssist
 		[Label("Boss Radar")]
 		[Tooltip("If disabled, the configs below have no effect")]
 		public bool BossRadarBool { get; set; }
-
-		[DefaultValue(0.85f)]
-		[Label("Radar Opacity -- Currently Unavailable")]
-		[Range(0.25f, 1f)]
-		public float OpacityFloat { get; set; }
-
+		
 		public override void OnLoaded()
 		{
 			BossAssist.ClientConfig = this;

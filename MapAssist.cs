@@ -10,10 +10,6 @@ using Terraria.ModLoader;
 using Terraria.Utilities;
 using ReLogic.Graphics;
 
-/// ADDITION: Batby suggests a map icon of the nearest corruption/crimson when you talk to the dryad aboout percentage evil
-/// ADDITION: Batby suggests a map icon of the nearest corruption/crimson when you talk to the dryad aboout percentage evil
-/// ADDITION: Batby suggests a map icon of the nearest corruption/crimson when you talk to the dryad aboout percentage evil
-
 /*
 
 	Ye fabled Crash regaurding the Map. Unsure if fixed now but just in case it isnt:
@@ -44,8 +40,8 @@ namespace BossAssist
         {
             whitelistPos = new List<Vector2>();
             whitelistType = new List<int>();
-			tilePos = new Vector2();
-			shouldDraw = false;
+			//tilePos = new Vector2();
+			//shouldDraw = false;
         }
 
         public static void DrawFullscreenMap()
@@ -121,7 +117,7 @@ namespace BossAssist
 			return -1;
 		}
 		#endregion
-
+		/*
 		#region EvilFinder
 		public static Vector2 tilePos;
 		public static bool shouldDraw = false;
@@ -204,5 +200,6 @@ namespace BossAssist
 			}
 		}
 		#endregion
+		*/
 	}
 }

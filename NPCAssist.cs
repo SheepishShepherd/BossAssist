@@ -49,7 +49,7 @@ namespace BossAssist
 					if (Main.netMode == NetmodeID.SinglePlayer && npc.playerInteraction[Main.myPlayer])
 					{
 						Player player = Main.player[Main.myPlayer];
-						CheckRecords(npc, player, PlayerAssist.Get(player, mod));
+						CheckRecords(npc, player, player.GetModPlayer<PlayerAssist>());
 					}
 					else
 					{
@@ -324,10 +324,12 @@ namespace BossAssist
 		
 		public override void OnChatButtonClicked(NPC npc, bool firstButton)
 		{
+			/*
 			if (npc.type == NPCID.Dryad && !firstButton)
 			{
 				MapAssist.LocateNearestEvil();
 			}
+			*/
 		}
 		
         public void UpdateRecordServerSide(int fromWho, NPC npc, string recordType, int recordValue)

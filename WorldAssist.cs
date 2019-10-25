@@ -25,8 +25,8 @@ namespace BossAssist
         public override void PreUpdate()
         {
             List<BossInfo> BL = BossAssist.instance.setup.SortedBosses;
-            PlayerAssist player = PlayerAssist.Get(Main.LocalPlayer, mod);
-            ResetArrays(BL.Count, player);
+            PlayerAssist modPlayer = Main.LocalPlayer.GetModPlayer<PlayerAssist>();
+            ResetArrays(BL.Count, modPlayer);
 
             // Bosses listed below are special cases
             ActiveBossesList[BL.FindIndex(x => x.id == NPCID.EaterofWorldsHead)] = Main.npc.Any(npc => (npc.type == 13 || npc.type == 14 || npc.type == 15) && npc.active);
@@ -45,7 +45,7 @@ namespace BossAssist
                     {
                         if (ActiveBossesList[NPCAssist.GetListNum(b)])
                         {
-                            if (Main.LocalPlayer.dead) player.DeathTracker[NPCAssist.GetListNum(b)] = true;
+                            if (Main.LocalPlayer.dead) modPlayer.DeathTracker[NPCAssist.GetListNum(b)] = true;
                             ActiveSpecialBosses[GetSpecialNum(NPCAssist.GetListNum(b))] = true;
                         }
                         else if (ActiveSpecialBosses[GetSpecialNum(NPCAssist.GetListNum(b))])
@@ -66,7 +66,7 @@ namespace BossAssist
                         if (b.active)
                         {
                             ActiveBossesList[NPCAssist.GetListNum(b)] = true;
-                            if (Main.LocalPlayer.dead) player.DeathTracker[NPCAssist.GetListNum(b)] = true;
+                            if (Main.LocalPlayer.dead) modPlayer.DeathTracker[NPCAssist.GetListNum(b)] = true;
                         }
                         else if (!b.active && Main.npc.All(npc => (npc.type == b.type && !npc.active) || npc.type != b.type)) // <INACTIVE NPC>
                         {
@@ -94,28 +94,28 @@ namespace BossAssist
                 {
                     if (ActiveBossesList[active])
                     {
-                        player.RecordTimers[active]++;
-                        player.DodgeTimer[active]++;
-                        player.MaxHealth[active] = Main.LocalPlayer.statLifeMax2;
-                        if (player.BrinkChecker[active] == 0 || (Main.LocalPlayer.statLife < player.BrinkChecker[active] && Main.LocalPlayer.statLife > 0))
+                        modPlayer.RecordTimers[active]++;
+                        modPlayer.DodgeTimer[active]++;
+                        modPlayer.MaxHealth[active] = Main.LocalPlayer.statLifeMax2;
+                        if (modPlayer.BrinkChecker[active] == 0 || (Main.LocalPlayer.statLife < modPlayer.BrinkChecker[active] && Main.LocalPlayer.statLife > 0))
                         {
-                            player.BrinkChecker[active] = Main.LocalPlayer.statLife;
+                            modPlayer.BrinkChecker[active] = Main.LocalPlayer.statLife;
                         }
                     }
                     else
                     {
-                        player.MaxHealth[active] = Main.LocalPlayer.statLifeMax2;
-                        player.RecordTimers[active] = 0;
-                        player.BrinkChecker[active] = 0;
-                        player.DodgeTimer[active] = 0;
+                        modPlayer.MaxHealth[active] = Main.LocalPlayer.statLifeMax2;
+                        modPlayer.RecordTimers[active] = 0;
+                        modPlayer.BrinkChecker[active] = 0;
+                        modPlayer.DodgeTimer[active] = 0;
                     }
                 }
                 else
                 {
-                    player.MaxHealth[active] = Main.LocalPlayer.statLifeMax2;
-                    player.RecordTimers[active] = 0;
-                    player.BrinkChecker[active] = 0;
-                    player.DodgeTimer[active] = 0;
+                    modPlayer.MaxHealth[active] = Main.LocalPlayer.statLifeMax2;
+                    modPlayer.RecordTimers[active] = 0;
+                    modPlayer.BrinkChecker[active] = 0;
+                    modPlayer.DodgeTimer[active] = 0;
                 }
             }
         }

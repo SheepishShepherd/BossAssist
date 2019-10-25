@@ -99,10 +99,12 @@ namespace BossAssist
         public override void PostDrawFullscreenMap(ref string mouseText)
         {
             MapAssist.DrawFullscreenMap();
+			/*
 			if (MapAssist.shouldDraw)
 			{
 				MapAssist.DrawNearestEvil(MapAssist.tilePos);
 			}
+			*/
         }
         
         public override void ModifyInterfaceLayers(List<GameInterfaceLayer> layers)

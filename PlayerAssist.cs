@@ -107,11 +107,6 @@ namespace BossAssist
             clone.BossTrophies = BossTrophies;
             clone.AllBossRecords = AllBossRecords;
         }
-		
-		public static PlayerAssist Get(Player player, Mod mod)
-        {
-            return player.GetModPlayer<PlayerAssist>(mod);
-        }
 
         public override void OnRespawn(Player player)
         {
@@ -191,8 +186,8 @@ namespace BossAssist
                 isNewPlayer = false;
             }
 			*/
-			MapAssist.shouldDraw = false;
-			MapAssist.tilePos = new Vector2(0, 0);
+			//MapAssist.shouldDraw = false;
+			//MapAssist.tilePos = new Vector2(0, 0);
         }
 
         public override void OnHitByNPC(NPC npc, int damage, bool crit)
