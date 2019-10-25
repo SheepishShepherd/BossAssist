@@ -1,7 +1,10 @@
 author = SheepishShepherd
-version = 0.2.2
+version = 1.0.1.1
 displayName = Boss Highlights
 homepage = https://forums.terraria.org/index.php?threads/boss-assistance.72395/
+buildIgnore = *.csproj, *.sln, *.user, obj\*, bin\*, .vs\*
+languageVersion = 6
 includePDB = true
-includeSource = false
-hideCode = true
+includeSource = true
+hideCode = false
+hideResources = true
