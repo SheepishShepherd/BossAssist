@@ -1,5 +1,5 @@
 author = SheepishShepherd
-version = 1.0.1.1
+version = 2.0
 displayName = Boss Highlights
 homepage = https://forums.terraria.org/index.php?threads/boss-assistance.72395/
 buildIgnore = *.csproj, *.sln, *.user, obj\*, bin\*, .vs\*

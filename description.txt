@@ -1,4 +1,4 @@
-[c/e73030:v1.0.1.1]  [c/e98b8b:5/29/2019]
+[c/e73030:v2.0]  [c/e98b8b:10/24/2019]
 Boss Highlights adds a few nifty features including: 
   	 Despawn Messages
   	 Respawn Timer
