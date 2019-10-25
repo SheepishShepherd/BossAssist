@@ -1342,7 +1342,7 @@ namespace BossAssist
             bosslogbutton.OnClick += new MouseEvent(OpenBossLog);
             bosslogbutton.OnRightClick += new MouseEvent(OpenNextBoss);
 
-            Texture2D bosslogTexture = BossAssist.instance.GetTexture("Resources/UI_BossLogPanel");
+            Texture2D bosslogTexture = BossAssist.instance.GetTexture("Resources/UIBook_byRiverOaken");
             bossLogPanel = new BookUI(bosslogTexture);
             bossLogPanel.Width.Pixels = 800;
             bossLogPanel.Height.Pixels = 500;
